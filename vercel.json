@@ -1,5 +1,7 @@
 {
   "functions": {
-    "api/claude.js": { "runtime": "nodejs20.x" }
+    "api/claude.js": {
+      "runtime": "@vercel/node@3.0.0"
+    }
   }
 }
