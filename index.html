@@ -59,24 +59,40 @@ th{padding:11px 13px;text-align:left;font-size:10px;font-weight:800;color:#94A3B
     <div style="text-align:center;margin-bottom:24px">
       <div style="font-size:44px;margin-bottom:6px">🚐</div>
       <div style="font-weight:800;font-size:21px">Camping-Car Pro</div>
-      <div style="font-size:13px;color:#94A3B8;margin-top:3px">Outil collaboratif partagé · Données en temps réel</div>
+      <div style="font-size:13px;color:#94A3B8;margin-top:3px">Gestion des ventes concession</div>
     </div>
-    <div style="margin-bottom:14px">
-      <label class="lbl">Votre prénom / nom</label>
-      <input id="ln" placeholder="Ex: Marc, Sophie..." style="margin-top:6px"/>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:#94A3B8;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">👔 Équipe concession</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="quickLogin('Julien','responsable')" style="padding:14px;background:linear-gradient(135deg,#6B7AE8,#8B5CF6);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:24px">👤</div><div>Julien</div><div style="font-size:10px;opacity:0.8;font-weight:600">Responsable</div>
+        </button>
+        <button onclick="quickLogin('Stéphanie','vendeur')" style="padding:14px;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:24px">👤</div><div>Stéphanie</div><div style="font-size:10px;opacity:0.8;font-weight:600">Assistante</div>
+        </button>
+        <button onclick="quickLogin('Rudy','preparateur')" style="padding:14px;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:24px">🔧</div><div>Rudy</div><div style="font-size:10px;opacity:0.8;font-weight:600">Technicien</div>
+        </button>
+        <button onclick="quickLogin('Hugo','preparateur')" style="padding:14px;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:24px">🔧</div><div>Hugo</div><div style="font-size:10px;opacity:0.8;font-weight:600">Technicien</div>
+        </button>
+      </div>
     </div>
-    <div style="margin-bottom:8px">
-      <label class="lbl">Votre rôle</label>
-      <div id="ri" style="margin-top:8px"></div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:#94A3B8;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">🔗 Intervenants extérieurs</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="quickLogin('Nettoyage','nettoyage')" style="padding:14px;background:linear-gradient(135deg,#0EA5E9,#0284C7);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:24px">🧼</div><div>Nettoyage</div><div style="font-size:10px;opacity:0.8;font-weight:600">Société externe</div>
+        </button>
+        <button onclick="quickLogin('Mécanicien','mecanicien')" style="padding:14px;background:linear-gradient(135deg,#E85A3A,#C2410C);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:24px">⚙️</div><div>Mécanicien</div><div style="font-size:10px;opacity:0.8;font-weight:600">Intervenant externe</div>
+        </button>
+      </div>
     </div>
-    <div style="margin-bottom:20px">
-      <button onclick="tExt()" style="width:100%;padding:8px 14px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:10px;font-size:12px;font-weight:700;color:#64748B;cursor:pointer;display:flex;justify-content:space-between">
-        <span>🔗 Intervenants extérieurs</span><span id="ea">▼</span>
-      </button>
-      <div id="re" style="display:none;margin-top:6px"></div>
-    </div>
-    <button class="btn" id="lbtn" onclick="doLogin()" style="width:100%;padding:12px;font-size:15px;background:#6B7AE8;color:#fff">Accéder →</button>
-    <div style="margin-top:12px;padding:9px 14px;background:#EEF2FF;border-radius:10px;border:1px solid #C7D2FE;font-size:11px;color:#4338CA;text-align:center">🌐 Données partagées entre tous les utilisateurs</div>
+
+    <div style="padding:9px 14px;background:#EEF2FF;border-radius:10px;border:1px solid #C7D2FE;font-size:11px;color:#4338CA;text-align:center">🌐 Données partagées en temps réel</div>
   </div>
 </div>
 
@@ -148,17 +164,28 @@ async function dbSN(n){await sb.from("notifications").insert({data:n});}
 async function dbLN(){const{data}=await sb.from("notifications").select("*").order("created_at",{ascending:false}).limit(50);return(data||[]).map(r=>({...r.data,id:r.id,at:r.created_at,lu:r.lu}));}
 
 function bRL(){
+  const ri=document.getElementById("ri");
+  const re=document.getElementById("re");
+  if(!ri||!re)return;
   const inn=RL.filter(r=>!r.e),ext=RL.filter(r=>r.e);
-  document.getElementById("ri").innerHTML=inn.map(r=>`<div class="ro" id="ro-${r.v}" onclick="sR('${r.v}')" style="${r.v===SR?`border-color:${r.c};background:${r.c}15`:""}"><div style="font-weight:700;font-size:13px;color:${r.v===SR?r.c:"#374151"}">${r.l}</div><div style="font-size:11px;color:#94A3B8;margin-top:1px">${r.d}</div></div>`).join("");
-  document.getElementById("re").innerHTML=ext.map(r=>`<div class="ro" id="ro-${r.v}" onclick="sR('${r.v}')" style="${r.v===SR?`border-color:${r.c};background:${r.c}15`:""}"><div style="font-weight:700;font-size:13px;color:${r.v===SR?r.c:"#374151"}">${r.l}</div><div style="font-size:11px;color:#94A3B8;margin-top:1px">${r.d}</div></div>`).join("");
+  ri.innerHTML=inn.map(r=>`<div class="ro" id="ro-${r.v}" onclick="sR('${r.v}')" style="${r.v===SR?`border-color:${r.c};background:${r.c}15`:""}"><div style="font-weight:700;font-size:13px;color:${r.v===SR?r.c:"#374151"}">${r.l}</div><div style="font-size:11px;color:#94A3B8;margin-top:1px">${r.d}</div></div>`).join("");
+  re.innerHTML=ext.map(r=>`<div class="ro" id="ro-${r.v}" onclick="sR('${r.v}')" style="${r.v===SR?`border-color:${r.c};background:${r.c}15`:""}"><div style="font-weight:700;font-size:13px;color:${r.v===SR?r.c:"#374151"}">${r.l}</div><div style="font-size:11px;color:#94A3B8;margin-top:1px">${r.d}</div></div>`).join("");
 }
 function sR(v){SR=v;bRL();}
 function tExt(){const d=document.getElementById("re"),a=document.getElementById("ea");if(d.style.display==="none"){d.style.display="block";a.textContent="▲";}else{d.style.display="none";a.textContent="▼";}}
 
 async function doLogin(){
-  const name=document.getElementById("ln").value.trim();
+  const name=document.getElementById("ln")?.value.trim();
   if(!name)return;
-  U={name,role:SR};
+  await startSession(name, SR);
+}
+
+async function quickLogin(name, role){
+  await startSession(name, role);
+}
+
+async function startSession(name, role){
+  U={name,role:role};
   document.getElementById("ls").style.display="none";
   if(U.role==="nettoyage"||U.role==="mecanicien"){document.getElementById("ev").style.display="block";}
   else{document.getElementById("app").style.display="block";}
@@ -173,9 +200,11 @@ async function doLogin(){
     }).subscribe();
   }
   CH=sb.channel("vch").on("postgres_changes",{event:"*",schema:"public",table:"ventes"},async()=>{
-    const d=await dbL();if(d){VS=d;render();}
+    const d=await dbL();if(d){VS=d;render();renderAI();}
   }).subscribe();
   render();
+  // Afficher le bouton IA
+  renderAI();
 }
 
 function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];document.getElementById("app").style.display="none";document.getElementById("ev").style.display="none";document.getElementById("ls").style.display="flex";SR="responsable";bRL();}
@@ -188,8 +217,8 @@ function rN(){const ago=iso=>{if(!iso)return"";const d=Math.floor((Date.now()-ne
 function clrN(){NF=[];uNB();rN();}
 
 function render(){
-  if(U.role==="nettoyage"){rNet();return;}
-  if(U.role==="mecanicien"){rMec();return;}
+  if(U.role==="nettoyage"){rNet();renderAI();return;}
+  if(U.role==="mecanicien"){rMec();renderAI();return;}
   const filt=VS.filter(v=>{if(fST!=="tous"&&v.statut!==fST)return false;if(fET!=="tous"&&v.etat!==fET)return false;if(SV){const q=SV.toLowerCase();if(![v.client,v.marque,v.modele,v.immatriculation,v.notes].join(" ").toLowerCase().includes(q))return false;}return true;});
   const eC=VS.filter(v=>v.statut!=="livre").length,lv=VS.filter(v=>v.statut==="livre").length,ug=VS.filter(v=>{const d=dD(v.livraisonDate);return d!==null&&d<=7&&v.statut!=="livre";}).length,ca=VS.reduce((s,v)=>s+Number(v.prix||0),0),rp=VS.filter(v=>v.reprise?.vehicule).length;
   document.getElementById("mc").innerHTML=`
@@ -384,9 +413,90 @@ function rMec(){
 
 async function mFait(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cm-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const up={...v,mecanique:{...v.mecanique,dateRealise:today,commentaireMeca:cmt,parMeca:U.name},modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"mecanique",icon:"⚙️",couleur:"#F59E0B",titre:`Mécanique terminée — ${v.client}`,detail:`${v.marque} ${v.modele} · ${(v.mecanique.travaux||[]).join(", ")||"travaux"} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Intervention enregistrée","#22C55E");const d=await dbL();if(d)VS=d;rMec();}
 
-document.getElementById("ln").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+const lnEl = document.getElementById("ln");
+if(lnEl) lnEl.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 document.addEventListener("click",e=>{if(NO&&!document.getElementById("nw").contains(e.target)){NO=false;document.getElementById("np").style.display="none";}});
 bRL();
+
+// ── ASSISTANT IA ─────────────────────────────────────────────
+let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false;
+
+function aiRoleColor(){if(!U)return["#6B7AE8","#8B5CF6"];const r=U.role;if(r==="nettoyage")return["#0EA5E9","#0284C7"];if(r==="mecanicien")return["#E85A3A","#C2410C"];if(r==="preparateur")return["#F59E0B","#D97706"];return["#6B7AE8","#8B5CF6"];}
+
+function aiBrief(){
+  if(!U)return"";
+  const todayFmt=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+  const L=[];
+  if(U.role==="nettoyage"){const al=VS.filter(v=>v.lavageDate&&v.statut!=="livre"&&!v.lavage?.realise);if(!al.length)return`Bonjour ${U.name} 👋 Aucun lavage en attente.`;L.push(`Bonjour ${U.name} 👋 Lavages en attente :`);al.forEach(v=>{const d=dD(v.livraisonDate);L.push(`· ${v.client} — ${v.marque} ${v.modele}${d!==null?" · J-"+d:""}${d!==null&&d<=3?" ⚡":""}`);});return L.join("\n");}
+  if(U.role==="mecanicien"){const af=VS.filter(v=>v.mecanique?.prevoir&&v.statut!=="livre"&&!v.mecanique?.dateRealise);if(!af.length)return`Bonjour ${U.name} 👋 Aucune intervention en attente.`;L.push(`Bonjour ${U.name} 👋 Interventions en attente :`);af.forEach(v=>{const d=dD(v.livraisonDate);L.push(`· ${v.client} — ${v.marque} ${v.modele} · ${(v.mecanique.travaux||[]).join(", ")||"à définir"}${d!==null?" · J-"+d:""}${d!==null&&d<=5?" ⚡":""}`);});return L.join("\n");}
+  if(U.role==="preparateur"){const ep=VS.filter(v=>["commande","preparation"].includes(v.statut));const mf=VS.filter(v=>v.mecanique?.prevoir&&!v.mecanique?.dateRealise&&v.statut!=="livre");const lf=VS.filter(v=>v.lavageDate&&!v.lavage?.realise&&v.statut!=="livre");L.push(`Bonjour ${U.name} 👋 Tableau de bord :`);L.push(`· ${ep.length} véhicule${ep.length>1?"s":""} en préparation`);if(mf.length)L.push(`· ${mf.length} méca. en attente`);if(lf.length)L.push(`· ${lf.length} lavage${lf.length>1?"s":""} à planifier`);L.push(`\nDemandez-moi ce que vous pourriez avoir oublié.`);return L.join("\n");}
+  const urg=VS.filter(v=>{const d=dD(v.livraisonDate);return d!==null&&d<=7&&v.statut!=="livre";});const dow=new Date().getDay();const nm=new Date();nm.setDate(new Date().getDate()+(dow===0?1:8-dow));const ns=new Date(nm);ns.setDate(nm.getDate()+6);
+  const sp=VS.filter(v=>v.livraisonDate&&v.livraisonDate>=nm.toISOString().split("T")[0]&&v.livraisonDate<=ns.toISOString().split("T")[0]&&v.statut!=="livre");
+  const aa=VS.filter(v=>v.accessoires?.some(a=>!a.recu)&&v.statut!=="livre");
+  L.push(`Bonjour ${U.name} 👋 Résumé du ${todayFmt} :`);
+  if(urg.length)L.push(`· ⚡ ${urg.length} livraison${urg.length>1?"s":""} urgente${urg.length>1?"s":""} (≤7j)`);
+  if(sp.length)L.push(`· 📅 ${sp.length} livraison${sp.length>1?"s":""} semaine prochaine`);
+  if(aa.length)L.push(`· 📦 ${aa.length} dossier${aa.length>1?"s":""} avec accessoires en attente`);
+  L.push(`\nPosez-moi n'importe quelle question.`);return L.join("\n");
+}
+
+function toggleAI(){
+  aiOpen=!aiOpen;
+  if(aiOpen&&!aiGreeted){aiMsgs=[{r:"a",t:aiBrief()}];aiGreeted=true;}
+  renderAI();
+}
+
+function renderAI(){
+  let el=document.getElementById("ai-wrap");
+  if(!el){el=document.createElement("div");el.id="ai-wrap";document.body.appendChild(el);}
+  const [c1,c2]=aiRoleColor();
+  const sugg=U?.role==="nettoyage"?["Qu'est-ce que j'ai à laver ?","Quel véhicule est le plus urgent ?"]
+    :U?.role==="mecanicien"?["Qu'est-ce que j'ai à faire ?","Quel véhicule est le plus urgent ?"]
+    :U?.role==="preparateur"?["Qu'est-ce que j'ai à faire aujourd'hui ?","Qu'est-ce que j'aurais pu oublier ?","Accessoires à poser avant livraison ?"]
+    :U?.role==="responsable"?["Livraisons semaine prochaine ?","Dossiers en retard ?","Reprises en cours ?"]
+    :["Livraisons cette semaine ?","Dossiers urgents ?","Accessoires en attente ?"];
+
+  const msgs=aiMsgs.map(m=>`<div style="display:flex;justify-content:${m.r==="u"?"flex-end":"flex-start"};margin-bottom:8px">
+    <div style="max-width:88%;padding:10px 13px;border-radius:${m.r==="u"?"16px 16px 4px 16px":"16px 16px 16px 4px"};background:${m.r==="u"?`linear-gradient(135deg,${c1},${c2})`:"#F1F5F9"};color:${m.r==="u"?"#fff":"#1E293B"};font-size:13px;line-height:1.5;white-space:pre-wrap">${es(m.t)}</div>
+  </div>`).join("");
+  const loader=aiLoading?`<div style="display:flex;margin-bottom:8px"><div style="background:#F1F5F9;padding:10px 14px;border-radius:16px 16px 16px 4px;display:flex;gap:4px;align-items:center"><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 0ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 150ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 300ms infinite"></div></div></div>`:"";
+  const suggHtml=aiMsgs.length<=1?`<div style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:5px">${sugg.map(s=>`<button onclick="aiSugg('${es(s)}')" style="padding:5px 10px;background:${c1}15;color:${c1};border:1px solid ${c1}30;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${s}</button>`).join("")}</div>`:"";
+
+  el.innerHTML=`
+    <button onclick="toggleAI()" style="position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px ${c1}80;z-index:400;display:flex;align-items:center;justify-content:center;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">${aiOpen?"✕":"🤖"}</button>
+    ${aiOpen?`<div style="position:fixed;bottom:92px;right:24px;width:min(400px,calc(100vw - 48px));height:min(560px,calc(100vh - 120px));background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0">
+      <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:14px 18px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
+        <div><div style="font-weight:800;font-size:14px;color:#fff">Assistant Concession</div><div style="font-size:11px;color:#64748B">${U?.name} · ${VS.length} dossiers</div></div>
+        <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:#22C55E"></div>
+      </div>
+      <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:14px">${msgs}${loader}</div>
+      ${suggHtml}
+      <div style="padding:10px 12px;border-top:1px solid #F1F5F9;display:flex;gap:8px">
+        <input id="ai-inp" value="" placeholder="Posez votre question..." style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid #E2E8F0;font-size:13px;font-family:inherit;outline:none;margin:0" onkeydown="if(event.key==='Enter')aiSend()" onfocus="this.style.borderColor='${c1}'" onblur="this.style.borderColor='#E2E8F0'"/>
+        <button onclick="aiSend()" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,${c1},${c2});border:none;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
+      </div>
+    </div>`:""}`;
+  if(aiOpen){setTimeout(()=>{const m=document.getElementById("ai-msgs");if(m)m.scrollTop=m.scrollHeight;},50);}
+}
+
+function aiSugg(s){document.getElementById("ai-inp").value=s;aiSend();}
+
+async function aiSend(){
+  const inp=document.getElementById("ai-inp");if(!inp)return;
+  const msg=inp.value.trim();if(!msg||aiLoading)return;
+  inp.value="";
+  aiMsgs.push({r:"u",t:msg});aiLoading=true;renderAI();
+  try{
+    const today2=new Date();const dw=today2.getDay();const nm2=new Date(today2);nm2.setDate(today2.getDate()+(dw===0?1:8-dw));const ns2=new Date(nm2);ns2.setDate(nm2.getDate()+6);
+    const ctx=JSON.stringify(VS.map(v=>({client:v.client,etat:v.etat,marque:v.marque,modele:v.modele,immatriculation:v.immatriculation||null,statut:v.statut,livraisonPrevue:v.livraisonDate||null,lavageDate:v.lavageDate||null,lavageRealise:v.lavage?.realise||null,lavageCommentaire:v.lavage?.commentaire||null,ct:v.ct?.prevoir?{prevu:v.ct.date,realise:v.ct.realise,resultat:v.ct.resultat}:null,mecanique:v.mecanique?.prevoir?{travaux:v.mecanique.travaux,datePrevu:v.mecanique.datePrevu,dateRealise:v.mecanique.dateRealise,commentaire:v.mecanique.commentaireMeca||null}:null,accessoiresEnAttente:(v.accessoires||[]).filter(a=>!a.recu).map(a=>a.desc),notes:v.notes||null})));
+    const sys=`Tu es l'assistant de Camping-Car Pro. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents.`;
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:aiMsgs.slice(0,-1).concat([{role:"user",content:msg}]).map(m=>({role:m.r==="u"?"user":"assistant",content:m.t}))})});
+    const data=await r.json();
+    aiMsgs.push({r:"a",t:data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre."});
+  }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
+  aiLoading=false;renderAI();
+}
 </script>
 </body>
 </html>
