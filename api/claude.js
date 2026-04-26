@@ -15,9 +15,10 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify(req.body),
     });
     const data = await response.json();
+    console.log('Anthropic response:', JSON.stringify(data));
     return res.status(response.status).json(data);
   } catch (error) {
-    return res.status(500).json({ error: 'Erreur serveur' });
+    console.error('Error:', error.message);
+    return res.status(500).json({ error: error.message });
   }
 };
- 
