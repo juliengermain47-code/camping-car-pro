@@ -274,7 +274,7 @@ function rCard(v){
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #F8FAFC">
       ${v.modifPar?`<div style="display:flex;align-items:center;gap:6px">${av(v.modifPar,18)}<span style="font-size:11px;color:#94A3B8">Modifié par <b style="color:#64748B">${es(v.modifPar)}</b>${v.modifAt?" · "+fmtT(v.modifAt):""}</span></div>`:"<div></div>"}
-      <button onclick="event.stopPropagation();openChecklist('${v.id}')" style="padding:4px 10px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:20px;font-size:11px;font-weight:700;color:#94A3B8;cursor:pointer">📋 Checklist</button>
+      <button onclick="event.stopPropagation();openChecklist('${v.id}')" style="padding:4px 10px;background:${Object.values(v.checklist||{}).some(x=>x.etat==='defaut')?'#FEE2E2':Object.keys(v.checklist||{}).length>0?'#DCFCE7':'#F8FAFC'};border:1.5px solid ${Object.values(v.checklist||{}).some(x=>x.etat==='defaut')?'#EF4444':Object.keys(v.checklist||{}).length>0?'#22C55E':'#E2E8F0'};border-radius:20px;font-size:11px;font-weight:700;color:${Object.values(v.checklist||{}).some(x=>x.etat==='defaut')?'#991B1B':Object.keys(v.checklist||{}).length>0?'#166534':'#94A3B8'};cursor:pointer">📋 Checklist</button>
     </div>
   </div>`;
 }
@@ -511,7 +511,7 @@ const CL_ITEMS = [
   "Contrôle stores extérieur","Contrôle panneau solaire","Contrôle batterie",
   "Contrôle antenne","Contrôle TV","Contrôle caméra de recul",
   "Contrôle climatisation cellule et porteur","Contrôle pompe à eau",
-  "Contrôle des mitigeurs","Contrôle lyre de gaz"
+  "Contrôle des mitigeurs","Contrôle lyre de gaz","Pneus"
 ];
 
 let clOpen=false, clVehicleId=null, clData={};
