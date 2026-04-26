@@ -272,7 +272,10 @@ function rCard(v){
       <div style="font-size:12px"><span style="color:#94A3B8">Livraison </span><strong style="color:${urg?"#EF4444":"#0F172A"}">${fmt(v.livraisonDate)}</strong>${v.livraisonReelle?`<span style="color:#22C55E;margin-left:6px;font-size:11px">✓ ${fmt(v.livraisonReelle)}</span>`:""}</div>
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">${v.financement&&v.financement!=="Comptant"?`<span style="font-size:11px;color:#8B5CF6;font-weight:600;background:#F5F3FF;padding:2px 7px;border-radius:10px">${es(v.financement)}</span>`:""}<span style="font-weight:800;font-size:14px;font-family:monospace">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</span>${bdg(v.statut)}</div>
     </div>
-    ${v.modifPar?`<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #F8FAFC">${av(v.modifPar,18)}<span style="font-size:11px;color:#94A3B8">Modifié par <b style="color:#64748B">${es(v.modifPar)}</b>${v.modifAt?" · "+fmtT(v.modifAt):""}</span></div>`:""}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #F8FAFC">
+      ${v.modifPar?`<div style="display:flex;align-items:center;gap:6px">${av(v.modifPar,18)}<span style="font-size:11px;color:#94A3B8">Modifié par <b style="color:#64748B">${es(v.modifPar)}</b>${v.modifAt?" · "+fmtT(v.modifAt):""}</span></div>`:"<div></div>"}
+      <button onclick="event.stopPropagation();openChecklist('${v.id}')" style="padding:4px 10px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:20px;font-size:11px;font-weight:700;color:#94A3B8;cursor:pointer">📋 Checklist</button>
+    </div>
   </div>`;
 }
 
@@ -495,6 +498,103 @@ async function aiSend(){
     aiMsgs.push({r:"a",t:data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre."});
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
+}
+
+// ── CHECKLIST PRÉPARATION ─────────────────────────────────────
+const CL_ITEMS = [
+  "Gravage","Carburant","Kit sécurité","Kit entretien","Contrôle étanchéité",
+  "Test des ouvrants","Graissage des ouvrants","Graissage des verrous de portillons",
+  "Contrôle des feux AV","Contrôle des feux AR","État du plancher","Centralisation",
+  "État des rétroviseurs","Fonctionnement autoradio","État des essuie-glaces",
+  "Fonctionnement des ouvertures placards","Contrôle gaz","Contrôle plaque cuisson",
+  "Contrôle chauffage","Contrôle chauffe-eau","Contrôle frigo",
+  "Contrôle stores extérieur","Contrôle panneau solaire","Contrôle batterie",
+  "Contrôle antenne","Contrôle TV","Contrôle caméra de recul",
+  "Contrôle climatisation cellule et porteur","Contrôle pompe à eau",
+  "Contrôle des mitigeurs","Contrôle lyre de gaz"
+];
+
+let clOpen=false, clVehicleId=null, clData={};
+
+function openChecklist(id){
+  const v=VS.find(x=>x.id===id);
+  if(!v)return;
+  clVehicleId=id;
+  clData=JSON.parse(JSON.stringify(v.checklist||{}));
+  clOpen=true;
+  renderChecklist();
+}
+
+function closeChecklist(){
+  clOpen=false;
+  clVehicleId=null;
+  renderChecklist();
+}
+
+async function saveChecklist(){
+  const v=VS.find(x=>x.id===clVehicleId);
+  if(!v)return;
+  const up={...v,checklist:clData,modifPar:U.name,modifAt:new Date().toISOString()};
+  await dbS(up);
+  toast("✅ Checklist enregistrée","#22C55E");
+  closeChecklist();
+}
+
+function setClItem(key,field,val){
+  if(!clData[key])clData[key]={etat:"",commentaire:""};
+  clData[key][field]=val;
+  renderChecklist();
+}
+
+function renderChecklist(){
+  let el=document.getElementById("cl-wrap");
+  if(!el){el=document.createElement("div");el.id="cl-wrap";document.body.appendChild(el);}
+  if(!clOpen){el.innerHTML="";return;}
+  const v=VS.find(x=>x.id===clVehicleId);
+  const total=CL_ITEMS.length;
+  const done=CL_ITEMS.filter(it=>(clData[it]?.etat==="ok"||clData[it]?.etat==="nc")).length;
+  const defauts=CL_ITEMS.filter(it=>clData[it]?.etat==="defaut").length;
+  const pct=Math.round(done/total*100);
+
+  const rows=CL_ITEMS.map(it=>{
+    const d=clData[it]||{etat:"",commentaire:""};
+    const isOk=d.etat==="ok", isDef=d.etat==="defaut", isNc=d.etat==="nc";
+    return`<div style="padding:10px 14px;border-bottom:1px solid #F1F5F9;background:${isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#F8FAFC":"#fff"}">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="flex:1;font-size:13px;font-weight:600;color:#1E293B;min-width:180px">${it}</span>
+        <div style="display:flex;gap:5px">
+          <button onclick="setClItem('${it.replace(/'/g,"\\'")}','etat','ok')" style="padding:4px 10px;border-radius:20px;border:2px solid ${isOk?"#22C55E":"#E2E8F0"};background:${isOk?"#DCFCE7":"#F8FAFC"};color:${isOk?"#166534":"#64748B"};font-size:12px;font-weight:700;cursor:pointer">✓ OK</button>
+          <button onclick="setClItem('${it.replace(/'/g,"\\'")}','etat','defaut')" style="padding:4px 10px;border-radius:20px;border:2px solid ${isDef?"#EF4444":"#E2E8F0"};background:${isDef?"#FEE2E2":"#F8FAFC"};color:${isDef?"#991B1B":"#64748B"};font-size:12px;font-weight:700;cursor:pointer">⚠ Défaut</button>
+          <button onclick="setClItem('${it.replace(/'/g,"\\'")}','etat','nc')" style="padding:4px 10px;border-radius:20px;border:2px solid ${isNc?"#94A3B8":"#E2E8F0"};background:${isNc?"#F1F5F9":"#F8FAFC"};color:${isNc?"#475569":"#64748B"};font-size:12px;font-weight:700;cursor:pointer">— N/C</button>
+        </div>
+      </div>
+      ${isDef?`<div style="margin-top:6px"><input type="text" value="${(d.commentaire||"").replace(/"/g,"&quot;")}" oninput="setClItem('${it.replace(/'/g,"\\'")}','commentaire',this.value)" placeholder="Décrire le défaut..." style="margin:0;font-size:12px;background:#FEF2F2;border-color:#FCA5A5"/></div>`:""}
+    </div>`;
+  }).join("");
+
+  el.innerHTML=`
+    <div style="position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:600;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:#fff;border-radius:20px;width:min(640px,100%);box-shadow:0 25px 60px rgba(0,0,0,0.3);overflow:hidden;margin:auto">
+        <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
+          <div>
+            <div style="font-weight:800;font-size:16px;color:#fff">📋 Checklist Préparation</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px">${v?`${v.client||"—"} · ${v.marque} ${v.modele||""}`:""}</div>
+          </div>
+          <button onclick="closeChecklist()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px">×</button>
+        </div>
+        <div style="padding:14px 20px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:14px">
+          <div style="flex:1;height:8px;background:#E2E8F0;border-radius:10px;overflow:hidden">
+            <div style="height:100%;background:${defauts>0?"#EF4444":"#22C55E"};width:${pct}%;transition:width 0.3s;border-radius:10px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#64748B;white-space:nowrap">${done}/${total} · ${defauts>0?`<span style="color:#EF4444">${defauts} défaut${defauts>1?"s":""}</span>`:`<span style="color:#22C55E">0 défaut</span>`}</div>
+        </div>
+        <div style="max-height:60vh;overflow-y:auto">${rows}</div>
+        <div style="padding:14px 20px;border-top:1px solid #E2E8F0;display:flex;gap:8px;background:#fff">
+          <button onclick="saveChecklist()" style="flex:1;padding:11px;background:#6B7AE8;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">💾 Enregistrer</button>
+          <button onclick="closeChecklist()" style="padding:11px 16px;background:#F1F5F9;color:#64748B;border:none;border-radius:10px;font-weight:700;cursor:pointer">Annuler</button>
+        </div>
+      </div>
+    </div>`;
 }
 </script>
 </body>
