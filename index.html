@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🚐 Camping-Car Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F1F5F9;min-height:100vh;color:#1E293B}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:10px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border:1px solid #F0F0F4;cursor:pointer;transition:transform 0.15s;animation:fadeIn 0.3s ease;margin-bottom:14px;position:relative}
+.card:hover{transform:translateY(-2px)}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;font-family:monospace;white-space:nowrap}
+.btn{padding:10px 18px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+input,select,textarea{padding:8px 11px;border-radius:8px;border:1.5px solid #E2E8F0;font-size:13px;font-family:inherit;outline:none;background:#F8FAFC;width:100%;margin-top:4px;box-sizing:border-box;color:#1E293B}
+input:focus,select:focus,textarea:focus{border-color:#6B7AE8}
+label.lbl{font-size:10px;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;display:block}
+.sec{font-size:11px;font-weight:800;color:#6B7AE8;letter-spacing:1px;text-transform:uppercase;margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid #EEF2FF}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.panel{position:fixed;top:0;right:0;width:min(580px,100vw);height:100vh;overflow-y:auto;background:#fff;padding:28px 24px;box-shadow:-6px 0 40px rgba(0,0,0,0.15);z-index:200;animation:slideIn 0.25s ease}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:199}
+.tog{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;margin:8px 0}
+.tog-track{width:38px;height:20px;border-radius:20px;position:relative;transition:background 0.2s;flex-shrink:0}
+.tog-knob{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.chip{display:inline-flex;align-items:center;gap:5px;background:#EEF2FF;color:#4338CA;font-size:12px;padding:3px 10px;border-radius:12px;margin:2px}
+.fbtn{padding:5px 12px;border-radius:20px;border:1.5px solid #E2E8F0;background:#fff;color:#64748B;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.fbtn.on{background:#6B7AE8;color:#fff;border-color:#6B7AE8}
+.fbtn.on2{background:#0F172A;color:#fff;border-color:#0F172A}
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.ti{background:#0F172A;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:slideIn 0.3s ease}
+#ls{position:fixed;inset:0;background:linear-gradient(135deg,#0F172A,#1E293B);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px}
+.lbox{background:#fff;border-radius:20px;padding:36px 32px;width:min(440px,100%);box-shadow:0 25px 60px rgba(0,0,0,0.4);max-height:90vh;overflow-y:auto}
+.ro{padding:10px 14px;border-radius:10px;border:2px solid #E2E8F0;background:#F8FAFC;cursor:pointer;margin-bottom:6px}
+.steps{display:flex;align-items:center;margin:10px 0 4px}
+.hdr{background:#0F172A;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.mn{padding:22px 24px;max-width:1440px;margin:0 auto}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.twrap{background:#fff;border-radius:14px;overflow:auto;border:1px solid #E2E8F0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:11px 13px;text-align:left;font-size:10px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;border-bottom:2px solid #E2E8F0;white-space:nowrap}
+.dr{cursor:pointer}
+.dr td{padding:10px 13px}
+.dr:nth-child(even) td{background:#FAFAFA}
+.dr:hover td{background:#EEF2FF!important}
+.sc{background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #E8EDF2;flex:1;min-width:120px}
+.nb{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;background:#EF4444;color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #0F172A}
+.np{position:absolute;top:46px;right:0;width:340px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);border:1px solid #E2E8F0;z-index:300;overflow:hidden}
+.ni{padding:12px 16px;border-bottom:1px solid #F8FAFC;display:flex;gap:10px;align-items:flex-start}
+</style>
+</head>
+<body>
+
+<div id="ls">
+  <div class="lbox">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:44px;margin-bottom:6px">🚐</div>
+      <div style="font-weight:800;font-size:21px">Camping-Car Pro</div>
+      <div style="font-size:13px;color:#94A3B8;margin-top:3px">Outil collaboratif partagé · Données en temps réel</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="lbl">Votre prénom / nom</label>
+      <input id="ln" placeholder="Ex: Marc, Sophie..." style="margin-top:6px"/>
+    </div>
+    <div style="margin-bottom:8px">
+      <label class="lbl">Votre rôle</label>
+      <div id="ri" style="margin-top:8px"></div>
+    </div>
+    <div style="margin-bottom:20px">
+      <button onclick="tExt()" style="width:100%;padding:8px 14px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:10px;font-size:12px;font-weight:700;color:#64748B;cursor:pointer;display:flex;justify-content:space-between">
+        <span>🔗 Intervenants extérieurs</span><span id="ea">▼</span>
+      </button>
+      <div id="re" style="display:none;margin-top:6px"></div>
+    </div>
+    <button class="btn" id="lbtn" onclick="doLogin()" style="width:100%;padding:12px;font-size:15px;background:#6B7AE8;color:#fff">Accéder →</button>
+    <div style="margin-top:12px;padding:9px 14px;background:#EEF2FF;border-radius:10px;border:1px solid #C7D2FE;font-size:11px;color:#4338CA;text-align:center">🌐 Données partagées entre tous les utilisateurs</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="hdr">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;background:linear-gradient(135deg,#6B7AE8,#8B5CF6);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px">🚐</div>
+      <div><div style="font-weight:800;font-size:16px;color:#fff">Camping-Car Pro</div><div style="font-size:10px;color:#475569;letter-spacing:1px">GESTION COLLABORATIVE</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div id="nw" style="display:none;position:relative">
+        <button onclick="tNotifs()" style="position:relative;background:#1E293B;border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;color:#fff">
+          🔔<div id="nb" class="nb" style="display:none">0</div>
+        </button>
+        <div id="np" class="np" style="display:none">
+          <div style="padding:14px 16px;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between">
+            <div style="font-weight:800;font-size:14px">Notifications</div>
+            <button onclick="clrN()" style="background:none;border:none;font-size:11px;color:#94A3B8;cursor:pointer">Effacer</button>
+          </div>
+          <div id="nl" style="max-height:380px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;background:#1E293B;padding:6px 12px;border-radius:10px">
+        <div id="uav" style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;border:2px solid #fff;flex-shrink:0"></div>
+        <div><div id="unm" style="font-size:12px;font-weight:700;color:#fff"></div><div id="url" style="font-size:10px;color:#64748B;text-transform:capitalize"></div></div>
+        <button onclick="doLogout()" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;margin-left:4px">⏻</button>
+      </div>
+      <button class="btn" onclick="sNew()" style="background:#6B7AE8;color:#fff">+ Nouveau dossier</button>
+    </div>
+  </div>
+  <div class="mn" id="mc"></div>
+</div>
+
+<div id="ev" style="display:none"></div>
+<div id="ov" class="overlay" style="display:none" onclick="cPanel()"></div>
+<div id="sp" class="panel" style="display:none"></div>
+<div class="toast-wrap" id="tc"></div>
+
+<script>
+const SURL="https://dazrxwmafwkkjjudswlr.supabase.co";
+const SKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhenJ4d21hZndra2pqdWRzd2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTc4MzYsImV4cCI6MjA5MjY5MzgzNn0.UBZia80kJ9RHUwfwb9O1QrigfHdOuyf0P5Rm0rxgqy0";
+const sb=supabase.createClient(SURL,SKEY);
+
+const ST={commande:{l:"Commande",c:"#6B7AE8",b:"#EEF0FD"},preparation:{l:"Préparation",c:"#E8A23A",b:"#FDF4E7"},lavage:{l:"Lavage",c:"#0EA5E9",b:"#E0F4FD"},pret:{l:"Prêt",c:"#2DB57A",b:"#E8F8F2"},livre:{l:"Livré ✓",c:"#1A1A2E",b:"#E8E8ED"}};
+const MQ=["Hymer","Pilote","Rapido","Adria","Benimar","Dethleffs","Knaus","Eriba","Chausson","Fleurette","Le Voyageur","Carthago","Weinsberg","Sunlight","Eura Mobil"];
+const TY=["Fourgon","Capucine","Profilé","Intégral","Semi-intégré","Van","Caravane"];
+const FI=["Comptant","Crédit classique","LOA","LLD","Crédit ballon"];
+const TP=["Vidange","Courroie distri","Révision complète","Freins","Filtres","Bougies","Batterie","Climatisation","Plaquettes","Pneus"];
+const RL=[{v:"responsable",l:"📊 Responsable",d:"Vue complète + statistiques",e:false,c:"#6B7AE8"},{v:"vendeur",l:"🤝 Vendeur",d:"Gestion des dossiers clients",e:false,c:"#8B5CF6"},{v:"preparateur",l:"🔧 Préparateur",d:"Préparation, mécanique, lavage",e:false,c:"#F59E0B"},{v:"nettoyage",l:"🧼 Société de nettoyage",d:"Accès restreint : lavages uniquement",e:true,c:"#0EA5E9"},{v:"mecanicien",l:"⚙️ Mécanicien ext.",d:"Accès restreint : mécanique",e:true,c:"#E85A3A"}];
+const CU=["#6B7AE8","#E85A3A","#2DB57A","#F59E0B","#8B5CF6","#0EA5E9","#EC4899","#14B8A6"];
+const NV=()=>({etat:"neuf",client:"",marque:MQ[0],modele:"",type:TY[0],immatriculation:"",statut:"commande",commandeDate:"",preparationDate:"",lavageDate:"",livraisonDate:"",livraisonReelle:"",ct:{prevoir:false,date:"",realise:"",resultat:""},mecanique:{prevoir:false,travaux:[],datePrevu:"",dateRealise:""},accessoires:[],prix:"",financement:FI[0],organismeFinancement:"",reprise:{vehicule:"",immat:"",valeur:"",etat:""},notes:"",modifPar:"",modifAt:""});
+
+let U=null,VS=[],SR="responsable",fST="tous",fET="tous",SV="",VM="cards",NF=[],NO=false,PD=null,CH=null;
+
+const fmt=d=>{if(!d)return"—";const[y,m,j]=d.split("-");return`${j}/${m}/${y}`;};
+const fmtT=iso=>{if(!iso)return"";try{const d=new Date(iso);return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});}catch(e){return"";}};
+const dD=d1=>{if(!d1)return null;return Math.ceil((new Date(d1)-new Date(new Date().toISOString().split("T")[0]))/86400000);};
+const gI=()=>Date.now()+"_"+Math.random().toString(36).slice(2,7);
+const uC=n=>{let h=0;for(let c of n)h=((h<<5)-h)+c.charCodeAt(0);return CU[Math.abs(h)%CU.length];};
+const es=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const av=(name,sz=28)=>{const c=uC(name);const i=name.split(" ").map(w=>w[0]?.toUpperCase()).slice(0,2).join("");return`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${sz*0.38}px;font-weight:800;flex-shrink:0;border:2px solid #fff">${i}</div>`;};
+const bdg=s=>{const x=ST[s]||ST.commande;return`<span class="badge" style="background:${x.b};color:${x.c};border:1px solid ${x.c}30">${x.l}</span>`;};
+const ebdg=e=>{const n=e==="neuf";return`<span class="badge" style="background:${n?"#DCFCE7":"#FEF9C3"};color:${n?"#166534":"#854D0E"};border:${n?"1px solid #86EFAC":"1px solid #FDE047"}">${n?"NEUF":"OCCASION"}</span>`;};
+
+async function dbL(){const{data,error}=await sb.from("ventes").select("*").order("created_at",{ascending:true});if(error){console.error(error);return null;}return data.map(r=>({...r.data,id:r.id,modifPar:r.modif_par,modifAt:r.modif_at}));}
+async function dbS(v){const row={id:v.id||gI(),data:{...v},modif_par:v.modifPar||"",modif_at:v.modifAt||new Date().toISOString()};const{error}=await sb.from("ventes").upsert(row,{onConflict:"id"});if(error)console.error(error);return row.id;}
+async function dbD(id){const{error}=await sb.from("ventes").delete().eq("id",id);if(error)console.error(error);}
+async function dbSN(n){await sb.from("notifications").insert({data:n});}
+async function dbLN(){const{data}=await sb.from("notifications").select("*").order("created_at",{ascending:false}).limit(50);return(data||[]).map(r=>({...r.data,id:r.id,at:r.created_at,lu:r.lu}));}
+
+function bRL(){
+  const inn=RL.filter(r=>!r.e),ext=RL.filter(r=>r.e);
+  document.getElementById("ri").innerHTML=inn.map(r=>`<div class="ro" id="ro-${r.v}" onclick="sR('${r.v}')" style="${r.v===SR?`border-color:${r.c};background:${r.c}15`:""}"><div style="font-weight:700;font-size:13px;color:${r.v===SR?r.c:"#374151"}">${r.l}</div><div style="font-size:11px;color:#94A3B8;margin-top:1px">${r.d}</div></div>`).join("");
+  document.getElementById("re").innerHTML=ext.map(r=>`<div class="ro" id="ro-${r.v}" onclick="sR('${r.v}')" style="${r.v===SR?`border-color:${r.c};background:${r.c}15`:""}"><div style="font-weight:700;font-size:13px;color:${r.v===SR?r.c:"#374151"}">${r.l}</div><div style="font-size:11px;color:#94A3B8;margin-top:1px">${r.d}</div></div>`).join("");
+}
+function sR(v){SR=v;bRL();}
+function tExt(){const d=document.getElementById("re"),a=document.getElementById("ea");if(d.style.display==="none"){d.style.display="block";a.textContent="▲";}else{d.style.display="none";a.textContent="▼";}}
+
+async function doLogin(){
+  const name=document.getElementById("ln").value.trim();
+  if(!name)return;
+  U={name,role:SR};
+  document.getElementById("ls").style.display="none";
+  if(U.role==="nettoyage"||U.role==="mecanicien"){document.getElementById("ev").style.display="block";}
+  else{document.getElementById("app").style.display="block";}
+  uHdr();
+  const data=await dbL();if(data)VS=data;
+  if(U.role==="vendeur"||U.role==="responsable"){
+    document.getElementById("nw").style.display="block";
+    NF=await dbLN();uNB();
+    sb.channel("nch").on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},p=>{
+      const n={...p.new.data,id:p.new.id,at:p.new.created_at,lu:false};
+      NF.unshift(n);uNB();toast("🔔 "+n.titre,n.couleur||"#6B7AE8");
+    }).subscribe();
+  }
+  CH=sb.channel("vch").on("postgres_changes",{event:"*",schema:"public",table:"ventes"},async()=>{
+    const d=await dbL();if(d){VS=d;render();}
+  }).subscribe();
+  render();
+}
+
+function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];document.getElementById("app").style.display="none";document.getElementById("ev").style.display="none";document.getElementById("ls").style.display="flex";SR="responsable";bRL();}
+
+function uHdr(){const c=uC(U.name);const i=U.name.split(" ").map(w=>w[0]?.toUpperCase()).slice(0,2).join("");const a=document.getElementById("uav");a.style.background=c;a.textContent=i;document.getElementById("unm").textContent=U.name;document.getElementById("url").textContent=U.role;}
+
+function uNB(){const n=NF.filter(x=>!x.lu).length;const b=document.getElementById("nb");if(n>0){b.style.display="flex";b.textContent=n>9?"9+":n;}else b.style.display="none";}
+function tNotifs(){NO=!NO;document.getElementById("np").style.display=NO?"block":"none";if(NO)rN();}
+function rN(){const ago=iso=>{if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);if(d<60)return"à l'instant";if(d<3600)return`il y a ${Math.floor(d/60)} min`;return`il y a ${Math.floor(d/3600)}h`;};const l=document.getElementById("nl");if(!NF.length){l.innerHTML=`<div style="padding:32px 16px;text-align:center;color:#94A3B8"><div style="font-size:32px">🔕</div><div style="font-size:13px;margin-top:8px">Aucune notification</div></div>`;return;}l.innerHTML=NF.map(n=>`<div class="ni" style="background:${n.lu?"#fff":"#F8FAFF"}"><div style="width:36px;height:36px;border-radius:10px;background:${(n.couleur||"#6B7AE8")}20;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${n.icon}</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">${es(n.titre)}</div><div style="font-size:11px;color:#64748B;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${es(n.detail||"")}</div><div style="font-size:10px;color:#CBD5E1;margin-top:4px">${ago(n.at)}</div></div></div>`).join("");}
+function clrN(){NF=[];uNB();rN();}
+
+function render(){
+  if(U.role==="nettoyage"){rNet();return;}
+  if(U.role==="mecanicien"){rMec();return;}
+  const filt=VS.filter(v=>{if(fST!=="tous"&&v.statut!==fST)return false;if(fET!=="tous"&&v.etat!==fET)return false;if(SV){const q=SV.toLowerCase();if(![v.client,v.marque,v.modele,v.immatriculation,v.notes].join(" ").toLowerCase().includes(q))return false;}return true;});
+  const eC=VS.filter(v=>v.statut!=="livre").length,lv=VS.filter(v=>v.statut==="livre").length,ug=VS.filter(v=>{const d=dD(v.livraisonDate);return d!==null&&d<=7&&v.statut!=="livre";}).length,ca=VS.reduce((s,v)=>s+Number(v.prix||0),0),rp=VS.filter(v=>v.reprise?.vehicule).length;
+  document.getElementById("mc").innerHTML=`
+<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+  <div class="sc"><div style="font-size:26px;font-weight:800;color:#6B7AE8;font-family:monospace">${eC}</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">En cours</div></div>
+  <div class="sc"><div style="font-size:26px;font-weight:800;color:#22C55E;font-family:monospace">${lv}</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">Livrés</div></div>
+  <div class="sc"><div style="font-size:26px;font-weight:800;color:#EF4444;font-family:monospace">${ug}</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">Urgents ≤7j</div></div>
+  <div class="sc"><div style="font-size:26px;font-weight:800;color:#F59E0B;font-family:monospace">${rp}</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">Reprises</div></div>
+  <div class="sc"><div style="font-size:22px;font-weight:800;color:#0F172A;font-family:monospace">${ca.toLocaleString("fr-FR")} €</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">CA total</div></div>
+</div>
+<div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;border:1px solid #E2E8F0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <input type="text" value="${es(SV)}" oninput="setSV(this.value)" placeholder="🔍  Client, marque, immatriculation..." style="min-width:220px;width:auto;margin:0"/>
+  <div style="display:flex;gap:5px">
+    <button class="fbtn ${fET==="tous"?"on2":""}" onclick="setFET('tous')">Tous</button>
+    <button class="fbtn ${fET==="neuf"?"on2":""}" onclick="setFET('neuf')">✨ Neuf</button>
+    <button class="fbtn ${fET==="occasion"?"on2":""}" onclick="setFET('occasion')">🔄 Occasion</button>
+  </div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap">
+    <button class="fbtn ${fST==="tous"?"on":""}" onclick="setFST('tous')">Tous statuts</button>
+    ${Object.entries(ST).map(([k,s])=>`<button class="fbtn ${fST===k?"on":""}" onclick="setFST('${k}')">${s.l}</button>`).join("")}
+  </div>
+  <div style="margin-left:auto;display:flex;gap:5px">
+    <button class="fbtn ${VM==="cards"?"on":""}" onclick="setVM('cards')">⊞</button>
+    <button class="fbtn ${VM==="table"?"on":""}" onclick="setVM('table')">☰</button>
+  </div>
+</div>
+${VM==="cards"?rCards(filt):rTable(filt)}`;
+}
+
+function rCards(filt){if(!filt.length)return`<div style="text-align:center;padding:60px;color:#CBD5E1"><div style="font-size:40px">🚐</div><div style="margin-top:10px">Aucun dossier trouvé</div></div>`;return`<div class="cgrid">${filt.map(v=>rCard(v)).join("")}</div>`;}
+
+function rCard(v){
+  const d=dD(v.livraisonDate),urg=d!==null&&d<=7&&v.statut!=="livre",accA=(v.accessoires||[]).filter(a=>!a.recu).length,rct=v.modifAt&&(Date.now()-new Date(v.modifAt).getTime())<300000;
+  const steps=["commande","preparation","lavage","pret","livre"],idx=steps.indexOf(v.statut);
+  const sHtml=`<div class="steps">${steps.map((s,i)=>{const done=i<idx,active=i===idx,c=ST[s]?.c||"#6B7AE8";return`<div style="display:flex;align-items:center;flex:1"><div style="width:11px;height:11px;border-radius:50%;flex-shrink:0;background:${done?"#22C55E":active?c:"#E5E7EB"};${active?`box-shadow:0 0 0 3px ${c}30`:""}"></div>${i<steps.length-1?`<div style="flex:1;height:2px;background:${done?"#22C55E":"#E5E7EB"}"></div>`:""}</div>`;}).join("")}</div>`;
+  const dots=[];
+  if(v.ct?.prevoir)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:${v.ct.resultat==="favorable"?"#22C55E":"#F59E0B"};color:#fff;flex-shrink:0">${v.ct.resultat==="favorable"?"✓":"!"}</span><span style="color:${v.ct.resultat==="favorable"?"#166534":"#92400E"}">CT ${v.ct.resultat==="favorable"?"OK":fmt(v.ct.date)||"à planifier"}</span></div>`);
+  if(v.mecanique?.prevoir)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:${v.mecanique.dateRealise?"#22C55E":"#F59E0B"};color:#fff;flex-shrink:0">${v.mecanique.dateRealise?"✓":"!"}</span><span style="color:${v.mecanique.dateRealise?"#166534":"#92400E"}">Méca. ${v.mecanique.dateRealise?"terminée":fmt(v.mecanique.datePrevu)||"à planifier"}</span></div>`);
+  if(v.preparationDate)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Prépa. ${fmt(v.preparationDate)}</div>`);
+  if(v.lavageDate)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Lavage ${fmt(v.lavageDate)}</div>`);
+  if(accA>0)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:#F59E0B;color:#fff;flex-shrink:0">!</span><span style="color:#92400E">${accA} accessoire${accA>1?"s":""} en attente</span></div>`);
+  if(v.reprise?.vehicule)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Reprise : ${es(v.reprise.vehicule)}</div>`);
+  return`<div class="card" onclick="oV('${v.id}')" style="${urg?"border:1.5px solid #EF444450;box-shadow:0 0 0 2px #EF444440,0 4px 16px rgba(0,0,0,0.07)":""}">
+    ${urg?`<div style="position:absolute;top:12px;right:12px;background:#EF4444;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">${d<=0?"⚠ EN RETARD":"⚡ J-"+d}</div>`:""}
+    ${rct&&!urg?`<div style="position:absolute;top:12px;right:12px;background:#22C55E;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">✓ Modifié</div>`:""}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span style="font-weight:800;font-size:15px">${es(v.client)}</span>${ebdg(v.etat)}</div>
+    <div style="font-size:13px;color:#6B7AE8;font-weight:600;margin-bottom:1px">${es(v.marque)} ${es(v.modele)} <span style="color:#CBD5E1">·</span> <span style="color:#94A3B8;font-weight:500">${es(v.type)}</span></div>
+    ${v.etat==="occasion"&&v.immatriculation?`<div style="font-size:12px;color:#94A3B8;font-family:monospace;margin-bottom:4px">${es(v.immatriculation)}</div>`:""}
+    ${sHtml}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin-top:10px">${dots.join("")}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;flex-wrap:wrap;gap:6px">
+      <div style="font-size:12px"><span style="color:#94A3B8">Livraison </span><strong style="color:${urg?"#EF4444":"#0F172A"}">${fmt(v.livraisonDate)}</strong>${v.livraisonReelle?`<span style="color:#22C55E;margin-left:6px;font-size:11px">✓ ${fmt(v.livraisonReelle)}</span>`:""}</div>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">${v.financement&&v.financement!=="Comptant"?`<span style="font-size:11px;color:#8B5CF6;font-weight:600;background:#F5F3FF;padding:2px 7px;border-radius:10px">${es(v.financement)}</span>`:""}<span style="font-weight:800;font-size:14px;font-family:monospace">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</span>${bdg(v.statut)}</div>
+    </div>
+    ${v.modifPar?`<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #F8FAFC">${av(v.modifPar,18)}<span style="font-size:11px;color:#94A3B8">Modifié par <b style="color:#64748B">${es(v.modifPar)}</b>${v.modifAt?" · "+fmtT(v.modifAt):""}</span></div>`:""}
+  </div>`;
+}
+
+function rTable(filt){
+  return`<div class="twrap"><table><thead><tr>${["Client","État","Véhicule","Immat.","Statut","Prépa.","Lavage","Livraison","CT","Méca.","Access.","Financement","Prix","Modifié par"].map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${filt.map(v=>{
+    const d=dD(v.livraisonDate),ug=d!==null&&d<=7&&v.statut!=="livre",aA=(v.accessoires||[]).filter(a=>!a.recu).length;
+    return`<tr class="dr" onclick="oV('${v.id}')" style="${ug?"border-left:3px solid #EF4444":"border-left:3px solid transparent"}">
+      <td style="font-weight:700;white-space:nowrap">${es(v.client)}</td><td>${ebdg(v.etat)}</td>
+      <td style="color:#6B7AE8;font-weight:600;white-space:nowrap">${es(v.marque)} ${es(v.modele)}</td>
+      <td style="font-family:monospace;color:#94A3B8;font-size:12px">${v.etat==="occasion"?(v.immatriculation||"—"):"—"}</td>
+      <td>${bdg(v.statut)}</td><td style="font-size:12px;color:#64748B">${fmt(v.preparationDate)}</td>
+      <td style="font-size:12px;color:#0EA5E9">${fmt(v.lavageDate)}</td>
+      <td style="color:${ug?"#EF4444":"#374151"};font-weight:${ug?700:400};white-space:nowrap">${fmt(v.livraisonDate)}${ug?`<span style="margin-left:4px;font-size:10px;font-weight:800">${d<=0?"⚠":"J-"+d}</span>`:""}</td>
+      <td style="text-align:center">${!v.ct?.prevoir?"—":v.ct.resultat==="favorable"?"✅":v.ct.date?"⏳":"❓"}</td>
+      <td style="text-align:center">${!v.mecanique?.prevoir?"—":v.mecanique.dateRealise?"✅":v.mecanique.datePrevu?"⏳":"❓"}</td>
+      <td style="text-align:center">${(v.accessoires||[]).length===0?"—":aA>0?`<span style="color:#F59E0B;font-weight:700">${aA} att.</span>`:`<span style="color:#22C55E">✓</span>`}</td>
+      <td style="font-size:11px;color:#8B5CF6;white-space:nowrap">${es(v.financement||"")}</td>
+      <td style="font-family:monospace;font-weight:700;white-space:nowrap">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</td>
+      <td>${v.modifPar?`<div style="display:flex;align-items:center;gap:5px">${av(v.modifPar,20)}<span style="font-size:11px;color:#64748B">${es(v.modifPar)}</span></div>`:""}</td>
+    </tr>`;
+  }).join("")}</tbody></table></div>`;
+}
+
+function setFST(v){fST=v;render();}
+function setFET(v){fET=v;render();}
+function setSV(v){SV=v;render();}
+function setVM(v){VM=v;render();}
+
+function oV(id){const v=VS.find(x=>x.id===id);if(!v)return;PD=JSON.parse(JSON.stringify(v));sPanel(false);}
+function sNew(){PD=NV();sPanel(true);}
+function sPanel(isNew){document.getElementById("ov").style.display="block";document.getElementById("sp").style.display="block";rPanel(isNew);}
+function cPanel(){document.getElementById("ov").style.display="none";document.getElementById("sp").style.display="none";PD=null;}
+
+function rPanel(isNew){
+  const v=PD;
+  const sel=(f,opts,sub)=>{const val=sub?v[sub][f]:v[f];return`<select onchange="sF('${f}','${sub||""}',this.value)">${opts.map(o=>typeof o==="string"?`<option value="${es(o)}"${val===o?" selected":""}>${es(o)}</option>`:`<option value="${es(o.v)}"${val===o.v?" selected":""}>${es(o.l)}</option>`).join("")}</select>`;};
+  const inp=(lbl,f,t,sub)=>`<div><label class="lbl">${lbl}</label><input type="${t||"text"}" value="${es(sub?v[sub][f]||"":v[f]||"")}" oninput="sF('${f}','${sub||""}',this.value)"/></div>`;
+  const tog=(lbl,f,sub)=>{const ch=sub?v[sub][f]:v[f];return`<div class="tog" onclick="tF('${f}','${sub||""}')"><div class="tog-track" style="background:${ch?"#6B7AE8":"#CBD5E1"}"><div class="tog-knob" style="left:${ch?20:3}px"></div></div><span style="font-size:13px;font-weight:600;color:#374151">${lbl}</span></div>`;};
+  const tr=v.mecanique?.travaux||[],ac=v.accessoires||[];
+  document.getElementById("sp").innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px">
+      <div><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:800;font-size:17px">${es(v.client)||"Nouveau dossier"}</span>${ebdg(v.etat)}</div><div style="font-size:13px;color:#6B7AE8;margin-top:2px">${es(v.marque)} ${es(v.modele)}</div></div>
+      <button onclick="cPanel()" style="background:#F1F5F9;border:none;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:18px;color:#64748B">×</button>
+    </div>
+    <div class="sec">👤 Client & Véhicule</div>
+    <div><label class="lbl">Nom du client</label><input type="text" value="${es(v.client)}" oninput="sF('client','',this.value)"/></div>
+    <div style="display:flex;gap:8px;margin:10px 0">
+      <button onclick="sF('etat','','neuf')" style="flex:1;padding:9px;border:2px solid ${v.etat==="neuf"?"#22C55E":"#E2E8F0"};background:${v.etat==="neuf"?"#DCFCE7":"#F8FAFC"};color:${v.etat==="neuf"?"#166534":"#64748B"};border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">✨ Neuf</button>
+      <button onclick="sF('etat','','occasion')" style="flex:1;padding:9px;border:2px solid ${v.etat==="occasion"?"#EAB308":"#E2E8F0"};background:${v.etat==="occasion"?"#FEF9C3":"#F8FAFC"};color:${v.etat==="occasion"?"#854D0E":"#64748B"};border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">🔄 Occasion</button>
+    </div>
+    <div class="g2"><div><label class="lbl">Marque</label>${sel("marque",MQ,"")}</div><div>${inp("Modèle","modele","")}</div><div><label class="lbl">Type</label>${sel("type",TY,"")}</div>${v.etat==="occasion"?`<div>${inp("Immatriculation","immatriculation","")}</div>`:""}</div>
+    <div class="sec">📅 Statut & Dates</div>
+    <div class="g2"><div><label class="lbl">Statut</label>${sel("statut",Object.entries(ST).map(([k,s])=>({v:k,l:s.l})),"")}</div>${inp("Date commande","commandeDate","date")}${inp("Date préparation","preparationDate","date")}${inp("Date lavage","lavageDate","date")}${inp("Livraison prévue","livraisonDate","date")}${inp("Livraison réelle","livraisonReelle","date")}</div>
+    <div class="sec">🔍 Contrôle Technique</div>
+    ${tog("CT à prévoir","prevoir","ct")}
+    ${v.ct?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date CT prévue","date","date","ct")}${inp("Date CT réalisée","realise","date","ct")}<div style="grid-column:1/-1"><label class="lbl">Résultat</label>${sel("resultat",[{v:"",l:"— En attente —"},{v:"favorable",l:"✅ Favorable"},{v:"defavorable",l:"❌ Défavorable"},{v:"prescriptions",l:"⚠️ Avec prescriptions"}],"ct")}</div></div>`:""}
+    <div class="sec">⚙️ Mécanique</div>
+    ${tog("Intervention mécanique à prévoir","prevoir","mecanique")}
+    ${v.mecanique?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date prévue","datePrevu","date","mecanique")}${inp("Date réalisée","dateRealise","date","mecanique")}</div>
+    <div style="margin-top:10px"><label class="lbl">Travaux à effectuer</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${TP.map(t=>`<button onclick="tTrav('${t}')" style="padding:4px 12px;border-radius:20px;border:1.5px solid ${tr.includes(t)?"#6B7AE8":"#E2E8F0"};background:${tr.includes(t)?"#EEF2FF":"#F8FAFC"};color:${tr.includes(t)?"#6B7AE8":"#64748B"};font-size:12px;font-weight:600;cursor:pointer">${t}</button>`).join("")}</div>
+    <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="ntv" placeholder="Autre travail..." style="margin:0" onkeydown="if(event.key==='Enter')aTrav()"/><button class="btn" onclick="aTrav()" style="padding:7px 14px;background:#6B7AE8;color:#fff;white-space:nowrap">+</button></div>
+    <div style="margin-top:8px">${tr.map((t,i)=>`<span class="chip">${es(t)}<button onclick="rTrav(${i})" style="background:none;border:none;color:#A5B4FC;font-weight:700;cursor:pointer;font-size:14px;line-height:1">×</button></span>`).join("")}</div></div>`:""}
+    <div class="sec">🛒 Accessoires</div>
+    <div id="aal">${ac.map((a,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:6px"><span style="flex:1;font-size:13px">${es(a.desc)}</span><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#6B7AE8;cursor:pointer;white-space:nowrap"><input type="checkbox" ${a.commande?"checked":""} onchange="sAc(${i},'commande',this.checked)"/> Commandé</label><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#22C55E;cursor:pointer;white-space:nowrap"><input type="checkbox" ${a.recu?"checked":""} onchange="sAc(${i},'recu',this.checked)"/> Reçu</label><button onclick="rAc(${i})" style="background:none;border:none;color:#CBD5E1;cursor:pointer;font-size:18px">×</button></div>`).join("")}</div>
+    <div style="display:flex;gap:6px;margin-top:4px"><input type="text" id="nac" placeholder="Ex: Store Fiamma, câble 220V..." style="margin:0" onkeydown="if(event.key==='Enter')aAc()"/><button class="btn" onclick="aAc()" style="padding:8px 16px;background:#6B7AE8;color:#fff;font-size:15px">+</button></div>
+    <div class="sec">💶 Financement</div>
+    <div class="g2"><div><label class="lbl">Type</label>${sel("financement",FI,"")}</div>${inp("Organisme","organismeFinancement","")}<div style="grid-column:1/-1">${inp("Prix de vente (€)","prix","number")}</div></div>
+    <div class="sec">🔄 Reprise véhicule</div>
+    <div class="g2">${inp("Véhicule repris","vehicule","","reprise")}${inp("Immatriculation","immat","","reprise")}${inp("Valeur (€)","valeur","","reprise")}${inp("État","etat","","reprise")}</div>
+    <div class="sec">📝 Notes</div>
+    <textarea rows="3" placeholder="Observations, instructions..." oninput="sF('notes','',this.value)">${es(v.notes)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="svV()" style="flex:1;padding:12px;background:#6B7AE8;color:#fff;font-size:14px">💾 Enregistrer</button>
+      <button class="btn" onclick="cPanel()" style="padding:12px 18px;background:#F1F5F9;color:#64748B">Annuler</button>
+      ${!isNew?`<button class="btn" onclick="cnfDel()" id="delbtn" style="padding:12px 14px;background:#FEF2F2;color:#EF4444;border:1px solid #FCA5A5">🗑</button>`:""}
+    </div>
+    <div id="dconf" style="display:none;margin-top:8px;gap:8px">
+      <button class="btn" onclick="delV()" style="padding:11px 16px;background:#EF4444;color:#fff">Confirmer ✓</button>
+      <button class="btn" onclick="document.getElementById('dconf').style.display='none'" style="padding:11px 14px;background:#F1F5F9;color:#64748B;margin-left:6px">Non</button>
+    </div>`;
+}
+
+function sF(f,sub,val){if(sub)PD[sub][f]=val;else PD[f]=val;if(f==="etat"||f==="prevoir")rPanel(!PD.id);}
+function tF(f,sub){const cur=sub?PD[sub][f]:PD[f];sF(f,sub,!cur);}
+function tTrav(t){const tr=PD.mecanique.travaux,i=tr.indexOf(t);if(i>=0)tr.splice(i,1);else tr.push(t);rPanel(!PD.id);}
+function aTrav(){const v=document.getElementById("ntv").value.trim();if(!v)return;PD.mecanique.travaux.push(v);rPanel(!PD.id);}
+function rTrav(i){PD.mecanique.travaux.splice(i,1);rPanel(!PD.id);}
+function sAc(i,f,v){PD.accessoires[i][f]=v;}
+function aAc(){const v=document.getElementById("nac").value.trim();if(!v)return;PD.accessoires.push({desc:v,commande:false,recu:false});rPanel(!PD.id);}
+function rAc(i){PD.accessoires.splice(i,1);rPanel(!PD.id);}
+function cnfDel(){const d=document.getElementById("dconf");d.style.display=d.style.display==="none"?"flex":"none";}
+async function svV(){PD.id=PD.id||gI();PD.modifPar=U.name;PD.modifAt=new Date().toISOString();await dbS(PD);toast(`✅ ${PD.client} enregistré`,"#22C55E");cPanel();}
+async function delV(){const n=PD.client;await dbD(PD.id);toast(`🗑 ${n} supprimé`,"#EF4444");cPanel();}
+
+function toast(msg,color="#6B7AE8"){const c=document.getElementById("tc");const el=document.createElement("div");el.className="ti";el.style.borderLeft=`4px solid ${color}`;el.textContent=msg;c.appendChild(el);setTimeout(()=>el.remove(),3500);}
+
+function rNet(){
+  const al=VS.filter(v=>v.statut!=="livre"&&v.lavageDate);
+  document.getElementById("ev").innerHTML=`<div style="min-height:100vh;background:#F0F9FF">
+    <div style="background:linear-gradient(135deg,#0EA5E9,#0284C7);padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px">🧼</div><div><div style="font-weight:800;font-size:16px;color:#fff">Espace Nettoyage</div><div style="font-size:11px;color:rgba(255,255,255,0.6)">${es(U.name)}</div></div></div>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">⏻ Quitter</button>
+    </div>
+    <div style="padding:24px;max-width:800px;margin:0 auto">
+      ${!al.length?`<div style="text-align:center;padding:60px;color:#94A3B8"><div style="font-size:48px">✨</div><div style="margin-top:10px;font-weight:700;font-size:16px">Aucun véhicule à laver</div></div>`:""}
+      ${al.map(v=>{const df=!!v.lavage?.realise,d=dD(v.livraisonDate),urg=d!==null&&d<=5;return`<div style="background:#fff;border-radius:16px;padding:20px;border:${df?"2px solid #22C55E":urg?"2px solid #F59E0B":"1px solid #E2E8F0"};margin-bottom:14px;opacity:${df?0.8:1}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="font-weight:800;font-size:15px">${es(v.client)}</span>${ebdg(v.etat)}</div><div style="font-size:13px;color:#0EA5E9;font-weight:600">${es(v.marque)} ${es(v.modele)}</div>${v.etat==="occasion"&&v.immatriculation?`<div style="font-size:12px;color:#94A3B8;font-family:monospace">${es(v.immatriculation)}</div>`:""}</div>
+        ${df?`<div style="background:#DCFCE7;color:#166534;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800">✓ Lavé ${fmt(v.lavage.realise)}</div>`:urg?`<div style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">⚡ J-${d}</div>`:""}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;padding:10px 14px;background:#F8FAFC;border-radius:10px"><div style="font-size:12px"><span style="color:#94A3B8">Lavage prévu : </span><strong>${fmt(v.lavageDate)}</strong></div><div style="font-size:12px"><span style="color:#94A3B8">Livraison : </span><strong style="color:${urg?"#F59E0B":"#0F172A"}">${fmt(v.livraisonDate)}</strong></div>${v.notes?`<div style="font-size:12px;grid-column:1/-1;color:#64748B;font-style:italic">📝 ${es(v.notes)}</div>`:""}</div>
+        ${df&&v.lavage?.commentaire?`<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px;color:#166534">💬 <strong>${es(v.lavage.par)}</strong> : ${es(v.lavage.commentaire)}</div>`:""}
+        ${!df?`<textarea id="cn-${v.id}" rows="2" placeholder="Commentaire optionnel..."></textarea><button onclick="mLav('${v.id}')" style="width:100%;padding:11px;background:#0EA5E9;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;margin-top:8px">✅ Marquer comme lavé</button>`:""}
+      </div>`}).join("")}
+    </div>
+  </div>`;}
+
+async function mLav(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cn-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const up={...v,lavage:{...v.lavage,realise:today,commentaire:cmt,par:U.name},statut:v.statut==="lavage"?"pret":v.statut,modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"lavage",icon:"🧼",couleur:"#0EA5E9",titre:`Lavage terminé — ${v.client}`,detail:`${v.marque} ${v.modele} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Lavage enregistré","#22C55E");const d=await dbL();if(d)VS=d;rNet();}
+
+function rMec(){
+  const af=VS.filter(v=>v.mecanique?.prevoir&&v.statut!=="livre");
+  document.getElementById("ev").innerHTML=`<div style="min-height:100vh;background:#FFF7ED">
+    <div style="background:linear-gradient(135deg,#F59E0B,#D97706);padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px">⚙️</div><div><div style="font-weight:800;font-size:16px;color:#fff">Espace Mécanique</div><div style="font-size:11px;color:rgba(255,255,255,0.6)">${es(U.name)}</div></div></div>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">⏻ Quitter</button>
+    </div>
+    <div style="padding:24px;max-width:800px;margin:0 auto">
+      ${!af.length?`<div style="text-align:center;padding:60px;color:#94A3B8"><div style="font-size:48px">🔧</div><div style="margin-top:10px;font-weight:700;font-size:16px">Aucune intervention en cours</div></div>`:""}
+      ${af.map(v=>{const df=!!v.mecanique?.dateRealise,d=dD(v.livraisonDate),urg=d!==null&&d<=7;return`<div style="background:#fff;border-radius:16px;padding:20px;border:${df?"2px solid #22C55E":urg?"2px solid #EF4444":"1px solid #E2E8F0"};margin-bottom:14px;opacity:${df?0.8:1}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="font-weight:800;font-size:15px">${es(v.client)}</span>${ebdg(v.etat)}</div><div style="font-size:13px;color:#F59E0B;font-weight:600">${es(v.marque)} ${es(v.modele)}</div>${v.etat==="occasion"&&v.immatriculation?`<div style="font-size:12px;color:#94A3B8;font-family:monospace">${es(v.immatriculation)}</div>`:""}</div>
+        ${df?`<div style="background:#DCFCE7;color:#166534;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800">✓ Fait le ${fmt(v.mecanique.dateRealise)}</div>`:urg?`<div style="background:#FEF2F2;color:#991B1B;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">⚡ J-${d}</div>`:""}</div>
+        <div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px">Travaux demandés</div><div>${(v.mecanique.travaux||[]).map(t=>`<span style="background:#FEF3C7;color:#92400E;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid #FDE68A;margin:2px;display:inline-block">${es(t)}</span>`).join("")}</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;padding:10px 14px;background:#F8FAFC;border-radius:10px"><div style="font-size:12px"><span style="color:#94A3B8">Prévu le : </span><strong>${fmt(v.mecanique.datePrevu)}</strong></div><div style="font-size:12px"><span style="color:#94A3B8">Livraison : </span><strong style="color:${urg?"#EF4444":"#0F172A"}">${fmt(v.livraisonDate)}</strong></div>${v.notes?`<div style="font-size:12px;grid-column:1/-1;color:#64748B;font-style:italic">📝 ${es(v.notes)}</div>`:""}</div>
+        ${df&&v.mecanique?.commentaireMeca?`<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px;color:#166534">💬 <strong>${es(v.mecanique.parMeca)}</strong> : ${es(v.mecanique.commentaireMeca)}</div>`:""}
+        ${!df?`<textarea id="cm-${v.id}" rows="2" placeholder="Commentaire sur les travaux effectués..."></textarea><button onclick="mFait('${v.id}')" style="width:100%;padding:11px;background:#F59E0B;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;margin-top:8px">✅ Marquer l'intervention comme réalisée</button>`:""}
+      </div>`}).join("")}
+    </div>
+  </div>`;}
+
+async function mFait(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cm-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const up={...v,mecanique:{...v.mecanique,dateRealise:today,commentaireMeca:cmt,parMeca:U.name},modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"mecanique",icon:"⚙️",couleur:"#F59E0B",titre:`Mécanique terminée — ${v.client}`,detail:`${v.marque} ${v.modele} · ${(v.mecanique.travaux||[]).join(", ")||"travaux"} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Intervention enregistrée","#22C55E");const d=await dbL();if(d)VS=d;rMec();}
+
+document.getElementById("ln").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+document.addEventListener("click",e=>{if(NO&&!document.getElementById("nw").contains(e.target)){NO=false;document.getElementById("np").style.display="none";}});
+bRL();
+</script>
+</body>
+</html>
