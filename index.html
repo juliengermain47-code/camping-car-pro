@@ -508,18 +508,90 @@ async function aiSend(){
 }
 
 // ── CHECKLIST PRÉPARATION ─────────────────────────────────────
-const CL_ITEMS = [
-  "Gravage","Carburant","Kit sécurité","Kit entretien","Contrôle étanchéité",
-  "Test des ouvrants","Graissage des ouvrants","Graissage des verrous de portillons",
-  "Contrôle des feux AV","Contrôle des feux AR","État du plancher","Centralisation",
-  "État des rétroviseurs","Fonctionnement autoradio","État des essuie-glaces",
-  "Fonctionnement des ouvertures placards","Contrôle gaz","Contrôle plaque cuisson",
-  "Contrôle chauffage","Contrôle chauffe-eau","Contrôle frigo",
-  "Contrôle stores extérieur","Contrôle panneau solaire","Contrôle batterie",
-  "Contrôle antenne","Contrôle TV","Contrôle caméra de recul",
-  "Contrôle climatisation cellule et porteur","Contrôle pompe à eau",
-  "Contrôle des mitigeurs","Contrôle lyre de gaz","Pneus"
+const CL_CATEGORIES = [
+  {cat:"🚗 Carrosserie & Extérieur", items:[
+    "Contrôle général carrosserie (rayures, impacts, déformations)",
+    "Gravage","Étanchéité toiture, joints, soufflets",
+    "Portes de cellule, charnières, fermetures",
+    "Coffres extérieurs (verrouillage, étanchéité)",
+    "Déflecteur, auvent, stores extérieurs",
+    "Pneus (usure, pression, date fabrication)","Roue de secours",
+    "Phares, feux, clignotants, recul, plaque","Rétroviseurs",
+    "Échelle de toit (si présente)","Rack de toit / vélo-rack (si présent)",
+    "Propreté extérieure"
+  ]},
+  {cat:"🔧 Mécanique & Sécurité", items:[
+    "Niveau huile moteur","Niveau liquide refroidissement",
+    "Niveau liquide de frein","Niveau liquide direction assistée",
+    "Niveau lave-glace","Batterie moteur (charge, tension)",
+    "Freins (jeu pédale, frein de parking)","Amortisseurs",
+    "Direction (jeu volant, alignement)","Cardans, soufflets, rotules",
+    "Silencieux / ligne échappement","Attelage (rotule, prise 7/13 broches)",
+    "Démarrage à froid et chaud","Voyants tableau de bord",
+    "Climatisation cabine chauffeur","Carburant",
+    "Kit sécurité","Kit entretien","Centralisation"
+  ]},
+  {cat:"⚡ Électricité 12V / Cellule", items:[
+    "Batterie de service (charge, capacité)",
+    "Coupleur séparateur / relais de charge",
+    "Panneau solaire (connexion, production)",
+    "Convertisseur / chargeur 220V→12V","Onduleur 12V→230V (si équipé)",
+    "Éclairages LED intérieurs","Tableau de contrôle / moniteur de bord",
+    "Câble branchement secteur","Prise extérieure 220V",
+    "Prises 12V et USB intérieures","Prises 220V intérieures",
+    "Groupe électrogène (si équipé)"
+  ]},
+  {cat:"💧 Circuit Eau", items:[
+    "Réservoir eau claire + test pompe à eau",
+    "Étanchéité connexions (raccords, flexibles)",
+    "Chauffe-eau / cumulus","Mitigeurs évier cuisine",
+    "Mitigeurs salle de bain","Douche",
+    "Réservoir eaux grises","Vanne eaux grises",
+    "WC chimique / cassette","Hivernage / déshivernage"
+  ]},
+  {cat:"🔥 Gaz", items:[
+    "Étanchéité installation gaz (détecteur)",
+    "Flexibles gaz (état, dates péremption)",
+    "Plaque cuisson / brûleurs","Chauffage (Truma/Webasto/Alde)",
+    "Chauffe-eau gaz (si équipé)","Coffre à bouteilles (aération, fixation)",
+    "Détendeur gaz","Détecteur gaz intérieur (CO + gaz)",
+    "Vanne coupe-gaz","Lyre de gaz / contrôle gaz"
+  ]},
+  {cat:"🛋️ Aménagement Intérieur", items:[
+    "Mobilier (fixations, charnières, portes placards)",
+    "Réfrigérateur (12V / 220V / gaz)","Lit central / lit de pavillon",
+    "Lit de pavillon électrique (si équipé)","Couchettes / lits superposés",
+    "Table à manger","Sièges / banquettes (ceintures)",
+    "Stores et moustiquaires","Store porte d'entrée",
+    "Porte d'entrée (fermeture, verrouillage)","Toit relevable / pavillon",
+    "Hotte aspirante","Extincteur (péremption, accessibilité)",
+    "Détecteur de fumée / CO","Propreté intérieure complète"
+  ]},
+  {cat:"❄️ Climatisation & Chauffage Cellule", items:[
+    "Climatisation de toit (soufflage froid)",
+    "Filtres climatisation","Chauffage air chaud",
+    "Plancher chauffant / radiateurs (si équipé)",
+    "Grille / bouche aération chauffage",
+    "Ventilation / Heki / lanterneau"
+  ]},
+  {cat:"📺 Multimédia & Connectivité", items:[
+    "Autoradio / GPS / écran embarqué",
+    "Bluetooth / Android Auto / CarPlay",
+    "Caméra de recul","TV (démarrage, fixation)",
+    "Antenne TV / TNT","Parabole satellite (si présente)",
+    "WiFi booster / routeur (si présent)","Alarme / GPS tracker (si équipé)"
+  ]},
+  {cat:"📄 Documents & Accessoires", items:[
+    "Carte grise présente et correcte",
+    "Contrôle technique à jour","Manuel d'utilisation présent",
+    "Notices équipements présentes","Clés complètes + télécommande",
+    "Jeu de clés de rechange","Cric, clé de roue, triangle signalisation",
+    "Gilets réfléchissants","Trousse premiers secours",
+    "Câble rallonge électrique","Tuyau remplissage eau",
+    "Télécommandes équipements"
+  ]}
 ];
+const CL_ITEMS = CL_CATEGORIES.flatMap(c=>c.items);
 
 let clOpen=false, clVehicleId=null, clData={};
 
@@ -550,7 +622,10 @@ async function saveChecklist(){
 function setClItem(key,field,val){
   if(!clData[key])clData[key]={etat:"",commentaire:""};
   clData[key][field]=val;
-  renderChecklist();
+  if(field==="etat"){
+    renderChecklist();
+  }
+  // commentaire: update only the input value, no re-render
 }
 
 function renderChecklist(){
@@ -563,20 +638,24 @@ function renderChecklist(){
   const defauts=CL_ITEMS.filter(it=>clData[it]?.etat==="defaut").length;
   const pct=Math.round(done/total*100);
 
-  const rows=CL_ITEMS.map(it=>{
-    const d=clData[it]||{etat:"",commentaire:""};
-    const isOk=d.etat==="ok", isDef=d.etat==="defaut", isNc=d.etat==="nc";
-    return`<div style="padding:10px 14px;border-bottom:1px solid #F1F5F9;background:${isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#F8FAFC":"#fff"}">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="flex:1;font-size:13px;font-weight:600;color:#1E293B;min-width:180px">${it}</span>
-        <div style="display:flex;gap:5px">
-          <button onclick="setClItem('${it.replace(/'/g,"\\'")}','etat','ok')" style="padding:4px 10px;border-radius:20px;border:2px solid ${isOk?"#22C55E":"#E2E8F0"};background:${isOk?"#DCFCE7":"#F8FAFC"};color:${isOk?"#166534":"#64748B"};font-size:12px;font-weight:700;cursor:pointer">✓ OK</button>
-          <button onclick="setClItem('${it.replace(/'/g,"\\'")}','etat','defaut')" style="padding:4px 10px;border-radius:20px;border:2px solid ${isDef?"#EF4444":"#E2E8F0"};background:${isDef?"#FEE2E2":"#F8FAFC"};color:${isDef?"#991B1B":"#64748B"};font-size:12px;font-weight:700;cursor:pointer">⚠ Défaut</button>
-          <button onclick="setClItem('${it.replace(/'/g,"\\'")}','etat','nc')" style="padding:4px 10px;border-radius:20px;border:2px solid ${isNc?"#94A3B8":"#E2E8F0"};background:${isNc?"#F1F5F9":"#F8FAFC"};color:${isNc?"#475569":"#64748B"};font-size:12px;font-weight:700;cursor:pointer">— N/C</button>
+  const rows=CL_CATEGORIES.map(cat=>{
+    const catRows=cat.items.map(it=>{
+      const d=clData[it]||{etat:"",commentaire:""};
+      const isOk=d.etat==="ok", isDef=d.etat==="defaut", isNc=d.etat==="nc";
+      const key=it.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+      return`<div style="padding:9px 14px;border-bottom:1px solid #F8FAFC;background:${isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#FAFAFA":"#fff"}">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="flex:1;font-size:12px;font-weight:600;color:#1E293B;min-width:160px">${it}</span>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button onclick="setClItem('${key}','etat','ok')" style="padding:3px 9px;border-radius:20px;border:2px solid ${isOk?"#22C55E":"#E2E8F0"};background:${isOk?"#DCFCE7":"#F8FAFC"};color:${isOk?"#166534":"#64748B"};font-size:11px;font-weight:700;cursor:pointer">✓ OK</button>
+            <button onclick="setClItem('${key}','etat','defaut')" style="padding:3px 9px;border-radius:20px;border:2px solid ${isDef?"#EF4444":"#E2E8F0"};background:${isDef?"#FEE2E2":"#F8FAFC"};color:${isDef?"#991B1B":"#64748B"};font-size:11px;font-weight:700;cursor:pointer">⚠ Défaut</button>
+            <button onclick="setClItem('${key}','etat','nc')" style="padding:3px 9px;border-radius:20px;border:2px solid ${isNc?"#94A3B8":"#E2E8F0"};background:${isNc?"#F1F5F9":"#F8FAFC"};color:${isNc?"#475569":"#64748B"};font-size:11px;font-weight:700;cursor:pointer">— N/C</button>
+          </div>
         </div>
-      </div>
-      ${isDef?`<div style="margin-top:6px"><input type="text" value="${(d.commentaire||"").replace(/"/g,"&quot;")}" oninput="setClItem('${it.replace(/'/g,"\\'")}','commentaire',this.value)" placeholder="Décrire le défaut..." style="margin:0;font-size:12px;background:#FEF2F2;border-color:#FCA5A5"/></div>`:""}
-    </div>`;
+        ${isDef?`<div style="margin-top:5px"><input type="text" value="${(d.commentaire||"").replace(/"/g,"&quot;")}" oninput="if(!clData['${key}'])clData['${key}']={etat:'defaut',commentaire:''};clData['${key}'].commentaire=this.value" placeholder="Décrire le défaut..." style="margin:0;font-size:12px;background:#FEF2F2;border-color:#FCA5A5"/></div>`:""}
+      </div>`;
+    }).join("");
+    return`<div style="background:#EEF2FF;padding:8px 14px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #C7D2FE;margin-top:4px">${cat.cat}</div>${catRows}`;
   }).join("");
 
   el.innerHTML=`
