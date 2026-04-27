@@ -123,7 +123,7 @@ th{padding:11px 13px;text-align:left;font-size:10px;font-weight:800;color:#94A3B
         <div><div id="unm" style="font-size:12px;font-weight:700;color:#fff"></div><div id="url" style="font-size:10px;color:#64748B;text-transform:capitalize"></div></div>
         <button onclick="doLogout()" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;margin-left:4px">⏻</button>
       </div>
-      ${U?.name==="Julien"?`<button class="btn" onclick="openHistorique()" style="background:#1E293B;color:#94A3B8;border:1px solid #334155">📜 Historique</button>`:""}
+      <button id="btn-histo" onclick="openHistorique()" style="display:none;background:#1E293B;color:#94A3B8;border:1px solid #334155" class="btn">📜 Historique</button>
       <button class="btn" onclick="sNew()" style="background:#6B7AE8;color:#fff">+ Nouveau dossier</button>
     </div>
   </div>
@@ -222,7 +222,7 @@ async function startSession(name, role){
 
 function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];localStorage.removeItem('loisirs47_session');document.getElementById("app").style.display="none";document.getElementById("ev").style.display="none";document.getElementById("ls").style.display="flex";SR="responsable";bRL();}
 
-function uHdr(){const c=uC(U.name);const i=U.name.split(" ").map(w=>w[0]?.toUpperCase()).slice(0,2).join("");const a=document.getElementById("uav");a.style.background=c;a.textContent=i;document.getElementById("unm").textContent=U.name;document.getElementById("url").textContent=U.role;}
+function uHdr(){const c=uC(U.name);const i=U.name.split(" ").map(w=>w[0]?.toUpperCase()).slice(0,2).join("");const a=document.getElementById("uav");a.style.background=c;a.textContent=i;document.getElementById("unm").textContent=U.name;document.getElementById("url").textContent=U.role;const bh=document.getElementById("btn-histo");if(bh)bh.style.display=U.name==="Julien"?"inline-flex":"none";}
 
 function uNB(){const n=NF.filter(x=>!x.lu).length;const b=document.getElementById("nb");if(n>0){b.style.display="flex";b.textContent=n>9?"9+":n;}else b.style.display="none";}
 function tNotifs(){NO=!NO;document.getElementById("np").style.display=NO?"block":"none";if(NO)rN();}
@@ -872,6 +872,7 @@ function setupCalDrag(){
 
 // ── HISTORIQUE ───────────────────────────────────────────────
 async function openHistorique(){
+  if(!U||U.name!=="Julien"){toast("Accès refusé","#EF4444");return;}
   // Create overlay
   let el=document.getElementById("histo-wrap");
   if(!el){el=document.createElement("div");el.id="histo-wrap";document.body.appendChild(el);}
