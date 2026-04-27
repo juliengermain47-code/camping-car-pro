@@ -140,6 +140,7 @@ const SKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI
 const sb=supabase.createClient(SURL,SKEY);
 
 const ST={commande:{l:"Commande",c:"#6B7AE8",b:"#EEF0FD"},preparation:{l:"Préparation",c:"#E8A23A",b:"#FDF4E7"},lavage:{l:"Lavage",c:"#0EA5E9",b:"#E0F4FD"},pret:{l:"Prêt",c:"#2DB57A",b:"#E8F8F2"},livre:{l:"Livré ✓",c:"#1A1A2E",b:"#E8E8ED"}};
+const ST_FILTRES={commande:{l:"Commande",c:"#6B7AE8",b:"#EEF0FD"},pret:{l:"Prêt",c:"#2DB57A",b:"#E8F8F2"},livre:{l:"Livré ✓",c:"#1A1A2E",b:"#E8E8ED"}};
 const MQ=["Hymer","Pilote","Rapido","Adria","Benimar","Dethleffs","Knaus","Eriba","Chausson","Fleurette","Le Voyageur","Carthago","Weinsberg","Sunlight","Eura Mobil"];
 const TY=["Fourgon","Capucine","Profilé","Intégral","Semi-intégré","Van","Caravane"];
 const FI=["Comptant","Crédit classique","LOA","LLD","Crédit ballon"];
@@ -240,7 +241,7 @@ function render(){
   </div>
   <div style="display:flex;gap:5px;flex-wrap:wrap">
     <button class="fbtn ${fST==="tous"?"on":""}" onclick="setFST('tous')">Tous statuts</button>
-    ${Object.entries(ST).map(([k,s])=>`<button class="fbtn ${fST===k?"on":""}" onclick="setFST('${k}')">${s.l}</button>`).join("")}
+    ${Object.entries(ST_FILTRES).map(([k,s])=>`<button class="fbtn ${fST===k?"on":""}" onclick="setFST('${k}')">${s.l}</button>`).join("")}
   </div>
   <button class="fbtn" onclick="archiveAllLivres()" style="background:#F59E0B15;border-color:#F59E0B;color:#B45309">📦 Archiver livrés</button><div style="margin-left:auto;display:flex;gap:5px">
     <button class="fbtn ${showArchive?'on':''}" onclick="showArchive=!showArchive;render()" style="${showArchive?'background:#F59E0B;border-color:#F59E0B':''}" >📦 Archives</button>
