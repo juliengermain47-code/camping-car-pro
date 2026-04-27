@@ -350,7 +350,7 @@ function rPanel(isNew){
       <div><label class="lbl">Livraison prévue</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.livraisonDate)}</div></div>
       <div><label class="lbl">Livraison réelle</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.livraisonReelle)}</div></div>
     </div>`
-    :`<div class="g2"><div><label class="lbl">Statut</label>${sel("statut",Object.entries(ST).map(([k,s])=>({v:k,l:s.l})),"")}</div>${inp("Date commande","commandeDate","date")}${inp("Date préparation","preparationDate","date")}${inp("Date lavage","lavageDate","date")}${inp("Livraison prévue","livraisonDate","date")}${inp("Livraison réelle","livraisonReelle","date")}</div>`}
+    :`<div class="g2"><div><label class="lbl">Statut</label>${sel("statut",Object.entries(ST).filter(([k])=>k!=="preparation"&&k!=="lavage").map(([k,s])=>({v:k,l:s.l})),"")}</div>${inp("Date commande","commandeDate","date")}${inp("Date préparation","preparationDate","date")}${inp("Date lavage","lavageDate","date")}${inp("Livraison prévue","livraisonDate","date")}${inp("Livraison réelle","livraisonReelle","date")}</div>`}
     ${!isTech?`<div class="sec">🔍 Contrôle Technique</div>
     ${tog("CT à prévoir","prevoir","ct")}
     ${v.ct?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date CT prévue","date","date","ct")}${inp("Date CT réalisée","realise","date","ct")}<div style="grid-column:1/-1"><label class="lbl">Résultat</label>${sel("resultat",[{v:"",l:"— En attente —"},{v:"favorable",l:"✅ Favorable"},{v:"defavorable",l:"❌ Défavorable"},{v:"prescriptions",l:"⚠️ Avec prescriptions"}],"ct")}</div></div>`:""}
