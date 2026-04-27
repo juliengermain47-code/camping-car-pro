@@ -448,7 +448,7 @@ document.addEventListener("click",e=>{if(NO&&!document.getElementById("nw").cont
 bRL();
 
 // ── ASSISTANT IA ─────────────────────────────────────────────
-let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false;
+let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false,aiListening=false,aiSpeaking=false,aiVoiceEnabled=true;
 
 function aiRoleColor(){if(!U)return["#6B7AE8","#8B5CF6"];const r=U.role;if(r==="nettoyage")return["#0EA5E9","#0284C7"];if(r==="mecanicien")return["#E85A3A","#C2410C"];if(r==="preparateur")return["#F59E0B","#D97706"];return["#6B7AE8","#8B5CF6"];}
 
@@ -521,6 +521,8 @@ function renderAI(){
       ${suggHtml}
       <div style="padding:10px 12px;border-top:1px solid #F1F5F9;display:flex;gap:8px">
         <input id="ai-inp" value="" placeholder="Posez votre question..." style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid #E2E8F0;font-size:13px;font-family:inherit;outline:none;margin:0" onkeydown="if(event.key==='Enter')aiSend()" onfocus="this.style.borderColor='${c1}'" onblur="this.style.borderColor='#E2E8F0'"/>
+        <button onclick="toggleVoiceInput()" title="Parler" style="width:40px;height:40px;border-radius:12px;background:${aiListening?'#EF4444':'#F1F5F9'};border:${aiListening?'none':'1.5px solid #E2E8F0'};color:${aiListening?'#fff':'#64748B'};cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s">${aiListening?'⏹':'🎤'}</button>
+        <button onclick="toggleVoiceOutput()" title="Réponse vocale ${aiVoiceEnabled?'activée':'désactivée'}" style="width:40px;height:40px;border-radius:12px;background:${aiVoiceEnabled?c1+'20':'#F1F5F9'};border:${aiVoiceEnabled?'1.5px solid '+c1:'1.5px solid #E2E8F0'};color:${aiVoiceEnabled?c1:'#94A3B8'};cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🔊</button>
         <button onclick="aiSend()" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,${c1},${c2});border:none;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
       </div>
     </div>`:""}`;
@@ -661,6 +663,66 @@ function cancelMod(mi){
   renderAI();
 }
 
+// ── VOICE INPUT / OUTPUT ─────────────────────────────────────
+let recognition=null;
+
+function toggleVoiceInput(){
+  if(aiListening){
+    if(recognition)recognition.stop();
+    aiListening=false;
+    renderAI();
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Reconnaissance vocale non supportée sur ce navigateur","#EF4444");return;}
+  recognition=new SR();
+  recognition.lang="fr-FR";
+  recognition.continuous=false;
+  recognition.interimResults=false;
+  recognition.onstart=()=>{aiListening=true;renderAI();};
+  recognition.onresult=e=>{
+    const transcript=e.results[0][0].transcript;
+    const inp=document.getElementById("ai-inp");
+    if(inp)inp.value=transcript;
+    aiListening=false;
+    renderAI();
+    setTimeout(()=>aiSend(),300);
+  };
+  recognition.onerror=e=>{
+    aiListening=false;
+    renderAI();
+    if(e.error!=="aborted")toast("Erreur micro : "+e.error,"#EF4444");
+  };
+  recognition.onend=()=>{aiListening=false;renderAI();};
+  recognition.start();
+}
+
+function toggleVoiceOutput(){
+  aiVoiceEnabled=!aiVoiceEnabled;
+  if(!aiVoiceEnabled&&window.speechSynthesis)window.speechSynthesis.cancel();
+  toast(aiVoiceEnabled?"🔊 Réponse vocale activée":"🔇 Réponse vocale désactivée","#6B7AE8");
+  renderAI();
+}
+
+function speakText(text){
+  if(!aiVoiceEnabled||!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  // Clean text for speech (remove markdown, emojis)
+  const clean=text.replace(/\*\*/g,"").replace(/\*/g,"").replace(/[#►➤✅❌📦📋🔔🚐👋]/g,"").replace(/
++/g,". ").trim();
+  const utt=new SpeechSynthesisUtterance(clean);
+  utt.lang="fr-FR";
+  utt.rate=1.0;
+  utt.pitch=1.0;
+  // Try to find a French voice
+  const voices=window.speechSynthesis.getVoices();
+  const frVoice=voices.find(v=>v.lang.startsWith("fr"));
+  if(frVoice)utt.voice=frVoice;
+  aiSpeaking=true;
+  utt.onend=()=>{aiSpeaking=false;};
+  window.speechSynthesis.speak(utt);
+}
+
 async function aiSend(){
   const inp=document.getElementById("ai-inp");if(!inp)return;
   const msg=inp.value.trim();if(!msg||aiLoading)return;
@@ -702,6 +764,7 @@ Champs optionnels : immatriculation, livraisonDate, commandeDate, prix, financem
       }catch(e){}
     }
     aiMsgs.push({r:"a",t:fullText,mod:pendingMod,create:pendingCreate});
+    speakText(fullText);
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
 }
