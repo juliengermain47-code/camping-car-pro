@@ -518,18 +518,14 @@ async function confirmMod(mi){
   up.modifPar=U.name;up.modifAt=new Date().toISOString();
   await dbS(up);
   aiMsgs[mi].mod=null;
-  aiMsgs[mi].t+="
-
-✅ Modification enregistrée !";
+  aiMsgs[mi].t+="\n\n✅ Modification enregistrée !";
   toast("✅ Dossier mis à jour","#22C55E");
   renderAI();
 }
 
 function cancelMod(mi){
   aiMsgs[mi].mod=null;
-  aiMsgs[mi].t+="
-
-❌ Modification annulée.";
+  aiMsgs[mi].t+="\n\n❌ Modification annulée.";
   renderAI();
 }
 
