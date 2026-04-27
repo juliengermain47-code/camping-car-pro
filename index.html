@@ -205,10 +205,11 @@ async function startSession(name, role){
     }).subscribe();
   }
   CH=sb.channel("vch").on("postgres_changes",{event:"*",schema:"public",table:"ventes"},async()=>{
-    const d=await dbL();if(d){VS=d;render();renderAI();}
+    const d=await dbL();if(d){VS=d;render();renderAI();if(calOpen)renderCal();}
   }).subscribe();
   render();
   renderAI();
+  renderCal();
 }
 
 function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];localStorage.removeItem('loisirs47_session');document.getElementById("app").style.display="none";document.getElementById("ev").style.display="none";document.getElementById("ls").style.display="flex";SR="responsable";bRL();}
@@ -460,6 +461,7 @@ bRL();
 
 // ── ASSISTANT IA ─────────────────────────────────────────────
 let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false;
+let calOpen=false,calView='month',calDate=new Date();
 
 function aiRoleColor(){if(!U)return["#6B7AE8","#8B5CF6"];const r=U.role;if(r==="nettoyage")return["#0EA5E9","#0284C7"];if(r==="mecanicien")return["#E85A3A","#C2410C"];if(r==="preparateur")return["#F59E0B","#D97706"];return["#6B7AE8","#8B5CF6"];}
 
@@ -716,6 +718,149 @@ Champs optionnels : immatriculation, livraisonDate, commandeDate, prix, financem
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
 }
+
+
+// ── CALENDRIER ───────────────────────────────────────────────
+function toggleCal(){
+  calOpen=!calOpen;
+  renderCal();
+}
+
+function renderCal(){
+  let el=document.getElementById("cal-wrap");
+  if(!el){el=document.createElement("div");el.id="cal-wrap";document.body.appendChild(el);}
+  if(!U){el.innerHTML="";return;}
+
+  // Floating button
+  const calPos=JSON.parse(localStorage.getItem('calPos')||'{"bottom":96,"right":24}');
+  
+  const btnHtml=`<button id="cal-btn" style="position:fixed;bottom:${calPos.bottom}px;right:${calPos.right}px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0EA5E9,#0284C7);color:#fff;border:none;font-size:24px;cursor:grab;box-shadow:0 4px 20px #0EA5E980;z-index:400;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none">${calOpen?"✕":"📅"}</button>`;
+
+  if(!calOpen){el.innerHTML=btnHtml;setupCalDrag();return;}
+
+  // Build calendar
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  const monthNames=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+  const dayNames=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+
+  // Collect all events from VS
+  const events=[];
+  VS.forEach(v=>{
+    if(v.livraisonDate)events.push({date:v.livraisonDate,type:"livraison",label:v.client||"—",sub:v.marque+" "+v.modele,id:v.id});
+    if(v.ct?.prevoir&&v.ct?.date)events.push({date:v.ct.date,type:"ct",label:v.client||"—",sub:"CT "+( v.ct.resultat==="favorable"?"✓":v.ct.resultat||"prévu"),id:v.id});
+    if(v.ct?.prevoir&&v.ct?.realise)events.push({date:v.ct.realise,type:"ct_done",label:v.client||"—",sub:"CT réalisé",id:v.id});
+  });
+
+  let calBody="";
+  if(calView==="month"){
+    const firstDay=new Date(y,m,1);
+    const lastDay=new Date(y,m+1,0);
+    let startDow=firstDay.getDay()-1; if(startDow<0)startDow=6;
+    const totalCells=Math.ceil((startDow+lastDay.getDate())/7)*7;
+    const today=new Date().toISOString().split("T")[0];
+    let cells="";
+    for(let i=0;i<totalCells;i++){
+      const dayNum=i-startDow+1;
+      if(dayNum<1||dayNum>lastDay.getDate()){cells+=`<div style="background:#F8FAFC;border-right:1px solid #F1F5F9;border-bottom:1px solid #F1F5F9;min-height:80px;padding:4px"></div>`;continue;}
+      const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(dayNum).padStart(2,"0")}`;
+      const isToday=dateStr===today;
+      const dayEvents=events.filter(e=>e.date===dateStr);
+      const evHtml=dayEvents.map(e=>`<div onclick="oV('${e.id}')" style="font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;margin-top:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:${e.type==="livraison"?"#DCFCE7":e.type==="ct_done"?"#E0F2FE":"#FEF3C7"};color:${e.type==="livraison"?"#166534":e.type==="ct_done"?"#0369A1":"#92400E"};border-left:3px solid ${e.type==="livraison"?"#22C55E":e.type==="ct_done"?"#0EA5E9":"#F59E0B"}">${e.label}</div>`).join("");
+      cells+=`<div style="border-right:1px solid #F1F5F9;border-bottom:1px solid #F1F5F9;min-height:80px;padding:4px;background:${isToday?"#EEF2FF":"#fff"}">
+        <div style="font-size:12px;font-weight:${isToday?800:500};color:${isToday?"#6B7AE8":"#374151"};${isToday?"background:#6B7AE8;color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;":""}">${dayNum}</div>
+        ${evHtml}
+      </div>`;
+    }
+    calBody=`<div style="display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid #F1F5F9;border-top:1px solid #F1F5F9">
+      ${dayNames.map(d=>`<div style="padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:#94A3B8;border-right:1px solid #F1F5F9;border-bottom:2px solid #E2E8F0">${d}</div>`).join("")}
+      ${cells}
+    </div>`;
+  } else {
+    // Week view
+    const dow=calDate.getDay(); const diff=calDate.getDate()-dow+(dow===0?-6:1);
+    const weekStart=new Date(calDate); weekStart.setDate(diff);
+    const today=new Date().toISOString().split("T")[0];
+    let cols="";
+    for(let i=0;i<7;i++){
+      const d=new Date(weekStart); d.setDate(weekStart.getDate()+i);
+      const dateStr=d.toISOString().split("T")[0];
+      const isToday=dateStr===today;
+      const dayEvents=events.filter(e=>e.date===dateStr);
+      const evHtml=dayEvents.map(e=>`<div onclick="oV('${e.id}')" style="font-size:11px;font-weight:700;padding:5px 7px;border-radius:6px;margin-top:4px;cursor:pointer;background:${e.type==="livraison"?"#DCFCE7":e.type==="ct_done"?"#E0F2FE":"#FEF3C7"};color:${e.type==="livraison"?"#166534":e.type==="ct_done"?"#0369A1":"#92400E"};border-left:3px solid ${e.type==="livraison"?"#22C55E":e.type==="ct_done"?"#0EA5E9":"#F59E0B"}"><div>${e.label}</div><div style="font-size:10px;opacity:0.8">${e.sub}</div></div>`).join("");
+      cols+=`<div style="flex:1;border-right:1px solid #F1F5F9;padding:6px;background:${isToday?"#EEF2FF":"#fff"}">
+        <div style="font-size:11px;font-weight:800;color:${isToday?"#6B7AE8":"#374151"};text-align:center;margin-bottom:4px">${dayNames[i]}<br/><span style="font-size:15px">${d.getDate()}</span></div>
+        ${evHtml}
+      </div>`;
+    }
+    calBody=`<div style="display:flex;border-top:1px solid #E2E8F0;min-height:300px">${cols}</div>`;
+  }
+
+  // Navigation
+  const prevMonth=()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()-1,1);renderCal();};
+  const nextMonth=()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()+1,1);renderCal();};
+
+  el.innerHTML=`${btnHtml}
+  <div style="position:fixed;bottom:${calPos.bottom+68}px;right:${calPos.right}px;width:min(700px,calc(100vw - 48px));max-height:calc(100vh - 140px);background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0">
+    <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:14px 18px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:20px">📅</div>
+      <div style="font-weight:800;font-size:14px;color:#fff;flex:1">${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="calView='month';renderCal()" style="padding:4px 10px;border-radius:8px;border:none;background:${calView==="month"?"#6B7AE8":"rgba(255,255,255,0.1)"};color:#fff;font-size:11px;font-weight:700;cursor:pointer">Mois</button>
+        <button onclick="calView='week';renderCal()" style="padding:4px 10px;border-radius:8px;border:none;background:${calView==="week"?"#6B7AE8":"rgba(255,255,255,0.1)"};color:#fff;font-size:11px;font-weight:700;cursor:pointer">Semaine</button>
+        <button onclick="(${prevMonth.toString()})()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px">◀</button>
+        <button onclick="calDate=new Date();renderCal()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;padding:0 8px;height:28px;cursor:pointer;font-size:11px;font-weight:700">Auj.</button>
+        <button onclick="(${nextMonth.toString()})()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px">▶</button>
+      </div>
+    </div>
+    <div style="padding:8px 14px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;gap:12px;flex-wrap:wrap">
+      <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#22C55E;display:inline-block"></span>Livraison prévue</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#F59E0B;display:inline-block"></span>CT prévu</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#0EA5E9;display:inline-block"></span>CT réalisé</span>
+    </div>
+    <div style="overflow-y:auto;flex:1">${calBody}</div>
+  </div>`;
+  setupCalDrag();
+}
+
+function setupCalDrag(){
+  setTimeout(()=>{
+    const btn=document.getElementById("cal-btn");
+    if(!btn)return;
+    let dragging=false,startX,startY,startRight,startBottom,moved=false;
+    const onStart=e=>{
+      dragging=true;moved=false;
+      const pt=e.touches?e.touches[0]:e;
+      startX=pt.clientX;startY=pt.clientY;
+      const s=window.getComputedStyle(btn);
+      startRight=parseInt(s.right);startBottom=parseInt(s.bottom);
+      btn.style.cursor="grabbing";e.preventDefault();
+    };
+    const onMove=e=>{
+      if(!dragging)return;
+      const pt=e.touches?e.touches[0]:e;
+      const dx=pt.clientX-startX,dy=pt.clientY-startY;
+      if(Math.abs(dx)>5||Math.abs(dy)>5)moved=true;
+      const newRight=Math.max(8,Math.min(window.innerWidth-64,startRight-dx));
+      const newBottom=Math.max(8,Math.min(window.innerHeight-64,startBottom-dy));
+      btn.style.right=newRight+"px";btn.style.bottom=newBottom+"px";
+      e.preventDefault();
+    };
+    const onEnd=e=>{
+      if(!dragging)return;dragging=false;btn.style.cursor="grab";
+      const s=window.getComputedStyle(btn);
+      const pos={right:parseInt(s.right),bottom:parseInt(s.bottom)};
+      localStorage.setItem("calPos",JSON.stringify(pos));
+      if(!moved)toggleCal();
+    };
+    btn.addEventListener("mousedown",onStart);
+    btn.addEventListener("touchstart",onStart,{passive:false});
+    document.addEventListener("mousemove",onMove);
+    document.addEventListener("touchmove",onMove,{passive:false});
+    document.addEventListener("mouseup",onEnd);
+    document.addEventListener("touchend",onEnd);
+  },50);
+}
+
 
 // ── CHECKLIST PRÉPARATION ─────────────────────────────────────
 const CL_CATEGORIES = [
