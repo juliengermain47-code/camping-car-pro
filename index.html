@@ -374,7 +374,7 @@ async function svV(){PD.id=PD.id||gI();PD.modifPar=U.name;PD.modifAt=new Date().
 async function archiveV(){const n=PD.client;PD.archive=true;PD.modifPar=U.name;PD.modifAt=new Date().toISOString();await dbS(PD);toast(`📦 ${n} archivé`,"#F59E0B");cPanel();}
 async function unarchiveV(){PD.archive=false;PD.modifPar=U.name;PD.modifAt=new Date().toISOString();await dbS(PD);toast(`✅ ${PD.client} désarchivé`,"#22C55E");cPanel();}
 async function archiveAllLivres(){const livres=VS.filter(v=>v.statut==="livre"&&!v.archive);if(!livres.length){toast("Aucun dossier livré à archiver","#94A3B8");return;}for(const v of livres){await dbS({...v,archive:true,modifPar:U.name,modifAt:new Date().toISOString()});}toast(`📦 ${livres.length} dossier(s) archivé(s)`,"#F59E0B");}
-function printDossier(id){const v=VS.find(x=>x.id===id);if(!v)return;const cl=v.checklist||{};const clRows=["Gravage","Carburant","Kit sécurité","Kit entretien","Contrôle étanchéité","Test des ouvrants","Graissage des ouvrants","Graissage des verrous de portillons","Contrôle des feux AV","Contrôle des feux AR","État du plancher","Centralisation","État des rétroviseurs","Fonctionnement autoradio","État des essuie-glaces","Fonctionnement des ouvertures placards","Contrôle gaz","Contrôle plaque cuisson","Contrôle chauffage","Contrôle chauffe-eau","Contrôle frigo","Contrôle stores extérieur","Contrôle panneau solaire","Contrôle batterie","Contrôle antenne","Contrôle TV","Contrôle caméra de recul","Contrôle climatisation cellule et porteur","Contrôle pompe à eau","Contrôle des mitigeurs","Contrôle lyre de gaz","Pneus"].map(it=>{const d=cl[it]||{etat:"",commentaire:""};const badge=d.etat==="ok"?'<span style="color:#166534;font-weight:700">✓ OK</span>':d.etat==="defaut"?`<span style="color:#991B1B;font-weight:700">⚠ Défaut</span>${d.commentaire?` — <em>${d.commentaire}</em>`:""}`:d.etat==="nc"?'<span style="color:#64748B">— N/C</span>':'<span style="color:#CBD5E1">Non renseigné</span>';return`<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:5px 8px;font-size:12px">${it}</td><td style="padding:5px 8px;font-size:12px">${badge}</td></tr>`;}).join("");const w=window.open("","_blank");w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dossier — ${v.client||"—"}</title><style>body{font-family:'Segoe UI',sans-serif;color:#1E293B;padding:30px;max-width:800px;margin:0 auto}h1{font-size:22px;font-weight:800;margin-bottom:4px}h2{font-size:14px;font-weight:800;color:#6B7AE8;margin:20px 0 8px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #EEF2FF;padding-bottom:4px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;margin-bottom:10px}.item{font-size:12px}.lbl{color:#94A3B8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}table{width:100%;border-collapse:collapse}th{background:#F8FAFC;padding:6px 8px;font-size:10px;font-weight:800;color:#94A3B8;text-align:left;text-transform:uppercase}@media print{button{display:none}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>🚐 ${v.client||"—"}</h1><div style="font-size:13px;color:#6B7AE8;font-weight:600">${v.marque} ${v.modele||""} · ${v.type||""}</div>${v.immatriculation?`<div style="font-size:12px;color:#94A3B8;font-family:monospace">${v.immatriculation}</div>`:""}</div><div style="text-align:right;font-size:11px;color:#94A3B8">Imprimé le ${new Date().toLocaleDateString("fr-FR")}</div></div><h2>Informations dossier</h2><div class="grid"><div class="item"><div class="lbl">État</div>${v.etat==="neuf"?"✨ Neuf":"🔄 Occasion"}</div><div class="item"><div class="lbl">Statut</div>${v.statut}</div><div class="item"><div class="lbl">Date commande</div>${v.commandeDate||"—"}</div><div class="item"><div class="lbl">Livraison prévue</div>${v.livraisonDate||"—"}</div><div class="item"><div class="lbl">Livraison réelle</div>${v.livraisonReelle||"—"}</div><div class="item"><div class="lbl">Prix</div>${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</div><div class="item"><div class="lbl">Financement</div>${v.financement||"—"}</div><div class="item"><div class="lbl">Organisme</div>${v.organismeFinancement||"—"}</div></div>${v.reprise?.vehicule?`<h2>Reprise véhicule</h2><div class="grid"><div class="item"><div class="lbl">Véhicule</div>${v.reprise.vehicule}</div><div class="item"><div class="lbl">Immat.</div>${v.reprise.immat||"—"}</div><div class="item"><div class="lbl">Valeur</div>${v.reprise.valeur?v.reprise.valeur+" €":"—"}</div><div class="item"><div class="lbl">État</div>${v.reprise.etat||"—"}</div></div>`:""}<h2>Préparation</h2><div class="grid"><div class="item"><div class="lbl">CT</div>${v.ct?.prevoir?`${v.ct.resultat||"En attente"} ${v.ct.date?"("+v.ct.date+")":""}` :"Non prévu"}</div><div class="item"><div class="lbl">Mécanique</div>${v.mecanique?.prevoir?(v.mecanique.travaux||[]).join(", ")||"Oui":"Non prévu"}</div><div class="item"><div class="lbl">Date prépa.</div>${v.preparationDate||"—"}</div><div class="item"><div class="lbl">Date lavage</div>${v.lavageDate||"—"}</div></div>${(v.accessoires||[]).length?`<h2>Accessoires</h2><div class="grid">${(v.accessoires||[]).map(a=>`<div class="item"><div class="lbl">${a.desc}</div>${a.recu?"✅ Reçu":a.commande?"📦 Commandé":"⏳ En attente"}</div>`).join("")}</div>`:""}<h2>Checklist préparation</h2><table><thead><tr><th>Point de contrôle</th><th>Résultat</th></tr></thead><tbody>${clRows}</tbody></table>${v.notes?`<h2>Notes</h2><p style="font-size:13px;color:#475569">${v.notes}</p>`:""}<div style="margin-top:30px;padding-top:16px;border-top:2px solid #E2E8F0;display:grid;grid-template-columns:1fr 1fr;gap:40px"><div><div style="font-size:11px;color:#94A3B8;margin-bottom:30px">Signature client</div><div style="border-bottom:1px solid #1E293B;width:200px"></div></div><div><div style="font-size:11px;color:#94A3B8;margin-bottom:30px">Signature vendeur</div><div style="border-bottom:1px solid #1E293B;width:200px"></div></div></div><button onclick="window.print()" style="margin-top:20px;padding:10px 20px;background:#6B7AE8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">🖨️ Imprimer</button></body></html>`);w.document.close();}
+function printDossier(id){const v=VS.find(x=>x.id===id);if(!v)return;const cl=v.checklist||{};const clRows=["Gravage","Carburant","Kit sécurité","Contrôle étanchéité","Test des ouvrants","Graissage des ouvrants","Graissage des verrous de portillons","Contrôle des feux AV","Contrôle des feux AR","État du plancher","Centralisation","État des rétroviseurs","Fonctionnement autoradio","État des essuie-glaces","Fonctionnement des ouvertures placards","Contrôle gaz","Contrôle plaque cuisson","Contrôle chauffage","Contrôle chauffe-eau","Contrôle frigo","Contrôle stores extérieur","Contrôle panneau solaire","Contrôle batterie","Contrôle antenne","Contrôle TV","Contrôle caméra de recul","Contrôle climatisation cellule et porteur","Contrôle pompe à eau","Contrôle des mitigeurs","Contrôle lyre de gaz","Pneus"].map(it=>{const d=cl[it]||{etat:"",commentaire:""};const badge=d.etat==="ok"?'<span style="color:#166534;font-weight:700">✓ OK</span>':d.etat==="defaut"?`<span style="color:#991B1B;font-weight:700">⚠ Défaut</span>${d.commentaire?` — <em>${d.commentaire}</em>`:""}`:d.etat==="nc"?'<span style="color:#64748B">— N/C</span>':'<span style="color:#CBD5E1">Non renseigné</span>';return`<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:5px 8px;font-size:12px">${it}</td><td style="padding:5px 8px;font-size:12px">${badge}</td></tr>`;}).join("");const w=window.open("","_blank");w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dossier — ${v.client||"—"}</title><style>body{font-family:'Segoe UI',sans-serif;color:#1E293B;padding:30px;max-width:800px;margin:0 auto}h1{font-size:22px;font-weight:800;margin-bottom:4px}h2{font-size:14px;font-weight:800;color:#6B7AE8;margin:20px 0 8px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #EEF2FF;padding-bottom:4px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;margin-bottom:10px}.item{font-size:12px}.lbl{color:#94A3B8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}table{width:100%;border-collapse:collapse}th{background:#F8FAFC;padding:6px 8px;font-size:10px;font-weight:800;color:#94A3B8;text-align:left;text-transform:uppercase}@media print{button{display:none}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>🚐 ${v.client||"—"}</h1><div style="font-size:13px;color:#6B7AE8;font-weight:600">${v.marque} ${v.modele||""} · ${v.type||""}</div>${v.immatriculation?`<div style="font-size:12px;color:#94A3B8;font-family:monospace">${v.immatriculation}</div>`:""}</div><div style="text-align:right;font-size:11px;color:#94A3B8">Imprimé le ${new Date().toLocaleDateString("fr-FR")}</div></div><h2>Informations dossier</h2><div class="grid"><div class="item"><div class="lbl">État</div>${v.etat==="neuf"?"✨ Neuf":"🔄 Occasion"}</div><div class="item"><div class="lbl">Statut</div>${v.statut}</div><div class="item"><div class="lbl">Date commande</div>${v.commandeDate||"—"}</div><div class="item"><div class="lbl">Livraison prévue</div>${v.livraisonDate||"—"}</div><div class="item"><div class="lbl">Livraison réelle</div>${v.livraisonReelle||"—"}</div><div class="item"><div class="lbl">Prix</div>${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</div><div class="item"><div class="lbl">Financement</div>${v.financement||"—"}</div><div class="item"><div class="lbl">Organisme</div>${v.organismeFinancement||"—"}</div></div>${v.reprise?.vehicule?`<h2>Reprise véhicule</h2><div class="grid"><div class="item"><div class="lbl">Véhicule</div>${v.reprise.vehicule}</div><div class="item"><div class="lbl">Immat.</div>${v.reprise.immat||"—"}</div><div class="item"><div class="lbl">Valeur</div>${v.reprise.valeur?v.reprise.valeur+" €":"—"}</div><div class="item"><div class="lbl">État</div>${v.reprise.etat||"—"}</div></div>`:""}<h2>Préparation</h2><div class="grid"><div class="item"><div class="lbl">CT</div>${v.ct?.prevoir?`${v.ct.resultat||"En attente"} ${v.ct.date?"("+v.ct.date+")":""}` :"Non prévu"}</div><div class="item"><div class="lbl">Mécanique</div>${v.mecanique?.prevoir?(v.mecanique.travaux||[]).join(", ")||"Oui":"Non prévu"}</div><div class="item"><div class="lbl">Date prépa.</div>${v.preparationDate||"—"}</div><div class="item"><div class="lbl">Date lavage</div>${v.lavageDate||"—"}</div></div>${(v.accessoires||[]).length?`<h2>Accessoires</h2><div class="grid">${(v.accessoires||[]).map(a=>`<div class="item"><div class="lbl">${a.desc}</div>${a.recu?"✅ Reçu":a.commande?"📦 Commandé":"⏳ En attente"}</div>`).join("")}</div>`:""}<h2>Checklist préparation</h2><table><thead><tr><th>Point de contrôle</th><th>Résultat</th></tr></thead><tbody>${clRows}</tbody></table>${v.notes?`<h2>Notes</h2><p style="font-size:13px;color:#475569">${v.notes}</p>`:""}<div style="margin-top:30px;padding-top:16px;border-top:2px solid #E2E8F0;display:grid;grid-template-columns:1fr 1fr;gap:40px"><div><div style="font-size:11px;color:#94A3B8;margin-bottom:30px">Signature client</div><div style="border-bottom:1px solid #1E293B;width:200px"></div></div><div><div style="font-size:11px;color:#94A3B8;margin-bottom:30px">Signature vendeur</div><div style="border-bottom:1px solid #1E293B;width:200px"></div></div></div><button onclick="window.print()" style="margin-top:20px;padding:10px 20px;background:#6B7AE8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">🖨️ Imprimer</button></body></html>`);w.document.close();}
 async function delV(){const n=PD.client;await dbD(PD.id);toast(`🗑 ${n} supprimé`,"#EF4444");cPanel();}
 
 function toast(msg,color="#6B7AE8"){const c=document.getElementById("tc");const el=document.createElement("div");el.className="ti";el.style.borderLeft=`4px solid ${color}`;el.textContent=msg;c.appendChild(el);setTimeout(()=>el.remove(),3500);}
@@ -503,14 +503,16 @@ async function confirmMod(mi){
   const mod=aiMsgs[mi]?.mod;
   if(!mod)return;
   // Search by id first, then by client name as fallback
+  console.log("confirmMod - mod:", JSON.stringify(mod));
+  console.log("confirmMod - VS ids:", VS.map(x=>x.id+":"+x.client));
   let v=VS.find(x=>x.id===mod.id);
   if(!v&&mod.client)v=VS.find(x=>x.client?.toLowerCase()===mod.client?.toLowerCase());
   if(!v){
-    // Reload from DB and retry
     const fresh=await dbL();
-    if(fresh){VS=fresh;v=VS.find(x=>x.id===mod.id);}
+    if(fresh){VS=fresh;v=VS.find(x=>x.id===mod.id)||VS.find(x=>x.client?.toLowerCase()===mod.client?.toLowerCase());}
   }
-  if(!v){toast("Dossier introuvable","#EF4444");return;}
+  console.log("confirmMod - found v:", v?v.id+":"+v.client:"NOT FOUND");
+  if(!v){toast("Dossier introuvable — vérifiez la console","#EF4444");return;}
   const up={...v};
   // Apply fields
   for(const [k,val] of Object.entries(mod.champs)){
@@ -522,8 +524,15 @@ async function confirmMod(mi){
       up[k]=val;
     }
   }
+  console.log("Saving up:", JSON.stringify({id:up.id,client:up.client,livraisonDate:up.livraisonDate}));
   up.modifPar=U.name;up.modifAt=new Date().toISOString();
   await dbS(up);
+  console.log("dbS called with id:", up.id);
+  // Reload VS from DB
+  const fresh=await dbL();
+  if(fresh){VS=fresh;render();}
+  // Refresh panel if open on this dossier
+  if(PD&&PD.id===up.id){PD=JSON.parse(JSON.stringify(VS.find(x=>x.id===up.id)||up));rPanel(false);}
   aiMsgs[mi].mod=null;
   aiMsgs[mi].t+="\n\n✅ Modification enregistrée !";
   toast("✅ Dossier mis à jour","#22C55E");
@@ -554,13 +563,14 @@ Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta répons
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1000,system:sys,messages:aiMsgs.slice(0,-1).concat([{r:"u",t:msg}]).map(m=>({role:m.r==="u"?"user":"assistant",content:m.t||" "})).filter(m=>m.content.trim())})});
     const data=await r.json();
     let fullText=data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre.";
+    console.log("AI response:", fullText);
     // Check for modification JSON
-    const modMatch=fullText.match(/MODIFICATION_JSON:(\{.*\})/);
+    const modMatch=fullText.match(/MODIFICATION_JSON:(\{[\s\S]*?\})(?:\s|$)/);
     let pendingMod=null;
     if(modMatch){
       try{
         pendingMod=JSON.parse(modMatch[1]);
-        fullText=fullText.replace(/MODIFICATION_JSON:\{.*\}/,"").trim();
+        fullText=fullText.replace(/MODIFICATION_JSON:\{[\s\S]*?\}/,"").trim();
       }catch(e){}
     }
     aiMsgs.push({r:"a",t:fullText,mod:pendingMod});
@@ -574,23 +584,18 @@ const CL_CATEGORIES = [
     "Contrôle général carrosserie (rayures, impacts, déformations)",
     "Gravage","Étanchéité toiture, joints, soufflets",
     "Portes de cellule, charnières, fermetures",
+    "Graissage des compas de baies","Graissage des verrous de porte","Graissage des lanterneaux",
     "Coffres extérieurs (verrouillage, étanchéité)",
     "Déflecteur, auvent, stores extérieurs",
     "Pneus (usure, pression, date fabrication)","Roue de secours",
     "Phares, feux, clignotants, recul, plaque","Rétroviseurs",
-    "Échelle de toit (si présente)","Rack de toit / vélo-rack (si présent)",
-    "Propreté extérieure"
+    "Échelle de toit (si présente)","Rack de toit / vélo-rack (si présent)"
   ]},
   {cat:"🔧 Mécanique & Sécurité", items:[
-    "Niveau huile moteur","Niveau liquide refroidissement",
-    "Niveau liquide de frein","Niveau liquide direction assistée",
-    "Niveau lave-glace","Batterie moteur (charge, tension)",
-    "Freins (jeu pédale, frein de parking)","Amortisseurs",
-    "Direction (jeu volant, alignement)","Cardans, soufflets, rotules",
-    "Silencieux / ligne échappement","Attelage (rotule, prise 7/13 broches)",
+    "Niveau huile moteur","Niveau liquide refroidissement","Niveau lave-glace","Batterie moteur (charge, tension)","Amortisseurs",
+    "Direction (jeu volant, alignement)","Silencieux / ligne échappement","Attelage (rotule, prise 7/13 broches)",
     "Démarrage à froid et chaud","Voyants tableau de bord",
-    "Climatisation cabine chauffeur","Carburant",
-    "Kit sécurité","Kit entretien","Centralisation"
+    "Climatisation cabine chauffeur","Carburant","Centralisation"
   ]},
   {cat:"⚡ Électricité 12V / Cellule", items:[
     "Batterie de service (charge, capacité)",
@@ -599,8 +604,7 @@ const CL_CATEGORIES = [
     "Convertisseur / chargeur 220V→12V","Onduleur 12V→230V (si équipé)",
     "Éclairages LED intérieurs","Tableau de contrôle / moniteur de bord",
     "Câble branchement secteur","Prise extérieure 220V",
-    "Prises 12V et USB intérieures","Prises 220V intérieures",
-    "Groupe électrogène (si équipé)"
+    "Prises 12V et USB intérieures","Prises 220V intérieures"
   ]},
   {cat:"💧 Circuit Eau", items:[
     "Réservoir eau claire + test pompe à eau",
@@ -608,7 +612,7 @@ const CL_CATEGORIES = [
     "Chauffe-eau / cumulus","Mitigeurs évier cuisine",
     "Mitigeurs salle de bain","Douche",
     "Réservoir eaux grises","Vanne eaux grises",
-    "WC chimique / cassette","Hivernage / déshivernage"
+    "WC chimique / cassette",
   ]},
   {cat:"🔥 Gaz", items:[
     "Étanchéité installation gaz (détecteur)",
@@ -623,8 +627,7 @@ const CL_CATEGORIES = [
     "Réfrigérateur (12V / 220V / gaz)","Lit central / lit de pavillon",
     "Lit de pavillon électrique (si équipé)","Couchettes / lits superposés",
     "Table à manger","Sièges / banquettes (ceintures)",
-    "Stores et moustiquaires","Store porte d'entrée",
-    "Porte d'entrée (fermeture, verrouillage)","Toit relevable / pavillon",
+    "Stores et moustiquaires","Porte d'entrée (fermeture, verrouillage)","Toit relevable / pavillon",
     "Hotte aspirante","Extincteur (péremption, accessibilité)",
     "Détecteur de fumée / CO","Propreté intérieure complète"
   ]},
@@ -643,13 +646,10 @@ const CL_CATEGORIES = [
     "WiFi booster / routeur (si présent)","Alarme / GPS tracker (si équipé)"
   ]},
   {cat:"📄 Documents & Accessoires", items:[
-    "Carte grise présente et correcte",
     "Contrôle technique à jour","Manuel d'utilisation présent",
     "Notices équipements présentes","Clés complètes + télécommande",
     "Jeu de clés de rechange","Cric, clé de roue, triangle signalisation",
-    "Gilets réfléchissants","Trousse premiers secours",
-    "Câble rallonge électrique","Tuyau remplissage eau",
-    "Télécommandes équipements"
+    "Gilets réfléchissants","Télécommandes équipements"
   ]}
 ];
 const CL_ITEMS = CL_CATEGORIES.flatMap(c=>c.items);
