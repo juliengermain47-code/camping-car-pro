@@ -465,8 +465,16 @@ function renderAI(){
     :U?.role==="responsable"?["Livraisons semaine prochaine ?","Dossiers en retard ?","Reprises en cours ?"]
     :["Livraisons cette semaine ?","Dossiers urgents ?","Accessoires en attente ?"];
 
-  const msgs=aiMsgs.map(m=>`<div style="display:flex;justify-content:${m.r==="u"?"flex-end":"flex-start"};margin-bottom:8px">
+  const msgs=aiMsgs.map((m,mi)=>`<div style="display:flex;justify-content:${m.r==="u"?"flex-end":"flex-start"};margin-bottom:8px;flex-direction:column;align-items:${m.r==="u"?"flex-end":"flex-start"}">
     <div style="max-width:88%;padding:10px 13px;border-radius:${m.r==="u"?"16px 16px 4px 16px":"16px 16px 16px 4px"};background:${m.r==="u"?`linear-gradient(135deg,${c1},${c2})`:"#F1F5F9"};color:${m.r==="u"?"#fff":"#1E293B"};font-size:13px;line-height:1.5;white-space:pre-wrap">${es(m.t)}</div>
+    ${m.mod?`<div style="margin-top:6px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:10px 14px;max-width:88%">
+      <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:6px">📝 Modification proposée</div>
+      <div style="font-size:12px;color:#374151;margin-bottom:8px">${es(m.mod.description)}</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="confirmMod(${mi})" style="padding:5px 14px;background:#22C55E;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">✓ Confirmer</button>
+        <button onclick="cancelMod(${mi})" style="padding:5px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">✕ Annuler</button>
+      </div>
+    </div>`:""}
   </div>`).join("");
   const loader=aiLoading?`<div style="display:flex;margin-bottom:8px"><div style="background:#F1F5F9;padding:10px 14px;border-radius:16px 16px 16px 4px;display:flex;gap:4px;align-items:center"><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 0ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 150ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 300ms infinite"></div></div></div>`:"";
   const suggHtml=aiMsgs.length<=1?`<div style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:5px">${sugg.map(s=>`<button onclick="aiSugg('${es(s)}')" style="padding:5px 10px;background:${c1}15;color:${c1};border:1px solid ${c1}30;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${s}</button>`).join("")}</div>`:"";
@@ -491,6 +499,40 @@ function renderAI(){
 
 function aiSugg(s){document.getElementById("ai-inp").value=s;aiSend();}
 
+async function confirmMod(mi){
+  const mod=aiMsgs[mi]?.mod;
+  if(!mod)return;
+  const v=VS.find(x=>x.id===mod.id);
+  if(!v){toast("Dossier introuvable","#EF4444");return;}
+  const up={...v};
+  // Apply fields
+  for(const [k,val] of Object.entries(mod.champs)){
+    if(k.includes(".")){
+      const [parent,child]=k.split(".");
+      if(!up[parent])up[parent]={};
+      up[parent][child]=val;
+    } else {
+      up[k]=val;
+    }
+  }
+  up.modifPar=U.name;up.modifAt=new Date().toISOString();
+  await dbS(up);
+  aiMsgs[mi].mod=null;
+  aiMsgs[mi].t+="
+
+✅ Modification enregistrée !";
+  toast("✅ Dossier mis à jour","#22C55E");
+  renderAI();
+}
+
+function cancelMod(mi){
+  aiMsgs[mi].mod=null;
+  aiMsgs[mi].t+="
+
+❌ Modification annulée.";
+  renderAI();
+}
+
 async function aiSend(){
   const inp=document.getElementById("ai-inp");if(!inp)return;
   const msg=inp.value.trim();if(!msg||aiLoading)return;
@@ -499,10 +541,26 @@ async function aiSend(){
   try{
     const today2=new Date();const dw=today2.getDay();const nm2=new Date(today2);nm2.setDate(today2.getDate()+(dw===0?1:8-dw));const ns2=new Date(nm2);ns2.setDate(nm2.getDate()+6);
     const ctx=JSON.stringify(VS.map(v=>({client:v.client,etat:v.etat,marque:v.marque,modele:v.modele,immatriculation:v.immatriculation||null,statut:v.statut,livraisonPrevue:v.livraisonDate||null,lavageDate:v.lavageDate||null,lavageRealise:v.lavage?.realise||null,lavageCommentaire:v.lavage?.commentaire||null,ct:v.ct?.prevoir?{prevu:v.ct.date,realise:v.ct.realise,resultat:v.ct.resultat}:null,mecanique:v.mecanique?.prevoir?{travaux:v.mecanique.travaux,datePrevu:v.mecanique.datePrevu,dateRealise:v.mecanique.dateRealise,commentaire:v.mecanique.commentaireMeca||null}:null,accessoiresEnAttente:(v.accessoires||[]).filter(a=>!a.recu).map(a=>a.desc),notes:v.notes||null})));
-    const sys=`Tu es l'assistant de Camping-Car Pro. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents.`;
+    const sys=`Tu es l'assistant de Camping-Car Pro. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents.
+
+IMPORTANT - MODIFICATIONS DE DOSSIERS :
+Si l'utilisateur demande de modifier un dossier (changer une date, un statut, ajouter une info, etc.), tu dois répondre en JSON avec ce format EXACT sur une seule ligne à la fin de ta réponse :
+MODIFICATION_JSON:{"id":"ID_DU_DOSSIER","champs":{"nomDuChamp":"valeur"},"description":"Ce que tu vas modifier"}
+Les champs modifiables sont : statut, livraisonDate (YYYY-MM-DD), commandeDate (YYYY-MM-DD), preparationDate (YYYY-MM-DD), lavageDate (YYYY-MM-DD), livraisonReelle (YYYY-MM-DD), prix, financement, notes, ct.date (YYYY-MM-DD), ct.resultat (favorable/defavorable/prescriptions), ct.prevoir (true/false), mecanique.datePrevu (YYYY-MM-DD), mecanique.dateRealise (YYYY-MM-DD), mecanique.prevoir (true/false).
+Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta réponse.`;
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1000,system:sys,messages:aiMsgs.slice(0,-1).concat([{r:"u",t:msg}]).map(m=>({role:m.r==="u"?"user":"assistant",content:m.t||" "})).filter(m=>m.content.trim())})});
     const data=await r.json();
-    aiMsgs.push({r:"a",t:data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre."});
+    let fullText=data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre.";
+    // Check for modification JSON
+    const modMatch=fullText.match(/MODIFICATION_JSON:(\{.*\})/);
+    let pendingMod=null;
+    if(modMatch){
+      try{
+        pendingMod=JSON.parse(modMatch[1]);
+        fullText=fullText.replace(/MODIFICATION_JSON:\{.*\}/,"").trim();
+      }catch(e){}
+    }
+    aiMsgs.push({r:"a",t:fullText,mod:pendingMod});
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
 }
