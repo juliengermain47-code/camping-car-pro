@@ -123,6 +123,7 @@ th{padding:11px 13px;text-align:left;font-size:10px;font-weight:800;color:#94A3B
         <div><div id="unm" style="font-size:12px;font-weight:700;color:#fff"></div><div id="url" style="font-size:10px;color:#64748B;text-transform:capitalize"></div></div>
         <button onclick="doLogout()" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;margin-left:4px">⏻</button>
       </div>
+      ${U?.name==="Julien"?`<button class="btn" onclick="openHistorique()" style="background:#1E293B;color:#94A3B8;border:1px solid #334155">📜 Historique</button>`:""}
       <button class="btn" onclick="sNew()" style="background:#6B7AE8;color:#fff">+ Nouveau dossier</button>
     </div>
   </div>
@@ -162,7 +163,10 @@ const bdg=s=>{const x=ST[s]||ST.commande;return`<span class="badge" style="backg
 const ebdg=e=>{const n=e==="neuf";return`<span class="badge" style="background:${n?"#DCFCE7":"#FEF9C3"};color:${n?"#166534":"#854D0E"};border:${n?"1px solid #86EFAC":"1px solid #FDE047"}">${n?"NEUF":"OCCASION"}</span>`;};
 
 async function dbL(){const{data,error}=await sb.from("ventes").select("*").order("created_at",{ascending:true});if(error){console.error(error);return null;}return data.map(r=>({...r.data,id:r.id,modifPar:r.modif_par,modifAt:r.modif_at}));}
-async function dbS(v){const row={id:v.id||gI(),data:{...v},modif_par:v.modifPar||"",modif_at:v.modifAt||new Date().toISOString()};const{error}=await sb.from("ventes").upsert(row,{onConflict:"id"});if(error)console.error(error);return row.id;}
+async function dbS(v){const row={id:v.id||gI(),data:{...v},modif_par:v.modifPar||"",modif_at:v.modifAt||new Date().toISOString()};const{error}=await sb.from("ventes").upsert(row,{onConflict:"id"});if(error)console.error(error);
+  // Log history
+  try{await sb.from("historique").insert({data:{dossierId:row.id,client:v.client||"",action:v.modifPar?"Modification":"Création",par:v.modifPar||"Système",at:v.modifAt||new Date().toISOString(),details:JSON.stringify({statut:v.statut,livraisonDate:v.livraisonDate,modifPar:v.modifPar})}});}catch(e){}
+  return row.id;}
 async function dbD(id){const{error}=await sb.from("ventes").delete().eq("id",id);if(error)console.error(error);}
 async function dbSN(n){await sb.from("notifications").insert({data:n});}
 async function dbLN(){const{data}=await sb.from("notifications").select("*").order("created_at",{ascending:false}).limit(50);return(data||[]).map(r=>({...r.data,id:r.id,at:r.created_at,lu:r.lu}));}
@@ -185,6 +189,10 @@ async function doLogin(){
 }
 
 async function quickLogin(name, role){
+  if(name==="Julien"){
+    const code=prompt("🔒 Code PIN Julien :");
+    if(code!=="1635"){alert("❌ Code incorrect");return;}
+  }
   await startSession(name, role);
 }
 
@@ -861,6 +869,61 @@ function setupCalDrag(){
   },50);
 }
 
+
+// ── HISTORIQUE ───────────────────────────────────────────────
+async function openHistorique(){
+  // Create overlay
+  let el=document.getElementById("histo-wrap");
+  if(!el){el=document.createElement("div");el.id="histo-wrap";document.body.appendChild(el);}
+  el.innerHTML=`<div style="position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:20px;width:min(680px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.3)">
+      <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:800;font-size:16px;color:#fff">📜 Historique des modifications</div>
+        <button onclick="document.getElementById('histo-wrap').innerHTML=''" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px">×</button>
+      </div>
+      <div style="padding:20px;text-align:center;color:#94A3B8">Chargement...</div>
+    </div>
+  </div>`;
+
+  // Load history from Supabase
+  try{
+    const{data,error}=await sb.from("historique").select("*").order("created_at",{ascending:false}).limit(100);
+    if(error||!data){el.querySelector("div[style*='Chargement']").textContent="Erreur de chargement.";return;}
+    
+    const rows=data.map(r=>{
+      const d=r.data||{};
+      const at=r.created_at?new Date(r.created_at).toLocaleString("fr-FR"):"—";
+      return`<tr style="border-bottom:1px solid #F1F5F9">
+        <td style="padding:9px 12px;font-size:12px;color:#94A3B8;white-space:nowrap">${at}</td>
+        <td style="padding:9px 12px;font-size:13px;font-weight:700">${d.client||"—"}</td>
+        <td style="padding:9px 12px;font-size:12px"><span style="background:#EEF2FF;color:#4338CA;padding:2px 8px;border-radius:10px;font-weight:600">${d.action||"—"}</span></td>
+        <td style="padding:9px 12px;font-size:12px;color:#6B7AE8;font-weight:600">${d.par||"—"}</td>
+        <td style="padding:9px 12px;font-size:11px;color:#94A3B8">${d.details?JSON.parse(d.details).statut||"":""}</td>
+      </tr>`;
+    }).join("");
+
+    el.innerHTML=`<div style="position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:#fff;border-radius:20px;width:min(680px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.3)">
+        <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:800;font-size:16px;color:#fff">📜 Historique des modifications</div>
+          <button onclick="document.getElementById('histo-wrap').innerHTML=''" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px">×</button>
+        </div>
+        <div style="overflow-y:auto;flex:1">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="border-bottom:2px solid #E2E8F0">
+              <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase">Date</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase">Action</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase">Par</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase">Statut</th>
+            </tr></thead>
+            <tbody>${rows||`<tr><td colspan="5" style="padding:40px;text-align:center;color:#94A3B8">Aucun historique</td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }catch(e){console.error(e);}
+}
 
 // ── CHECKLIST PRÉPARATION ─────────────────────────────────────
 const CL_CATEGORIES = [
