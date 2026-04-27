@@ -475,6 +475,14 @@ function renderAI(){
         <button onclick="cancelMod(${mi})" style="padding:5px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">✕ Annuler</button>
       </div>
     </div>`:""}
+    ${m.create?`<div style="margin-top:6px;background:#EFF6FF;border:1.5px solid #93C5FD;border-radius:12px;padding:10px 14px;max-width:88%">
+      <div style="font-size:12px;font-weight:700;color:#1D4ED8;margin-bottom:6px">➕ Nouveau dossier proposé</div>
+      <div style="font-size:12px;color:#374151;margin-bottom:8px">${es(m.create.description)}</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="confirmCreate(${mi})" style="padding:5px 14px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">✓ Créer</button>
+        <button onclick="cancelMod(${mi})" style="padding:5px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">✕ Annuler</button>
+      </div>
+    </div>`:""}
   </div>`).join("");
   const loader=aiLoading?`<div style="display:flex;margin-bottom:8px"><div style="background:#F1F5F9;padding:10px 14px;border-radius:16px 16px 16px 4px;display:flex;gap:4px;align-items:center"><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 0ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 150ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 300ms infinite"></div></div></div>`:"";
   const suggHtml=aiMsgs.length<=1?`<div style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:5px">${sugg.map(s=>`<button onclick="aiSugg('${es(s)}')" style="padding:5px 10px;background:${c1}15;color:${c1};border:1px solid ${c1}30;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${s}</button>`).join("")}</div>`:"";
@@ -556,6 +564,32 @@ async function confirmMod(mi){
   renderAI();
 }
 
+async function confirmCreate(mi){
+  const c=aiMsgs[mi]?.create;
+  if(!c)return;
+  const nv=Object.assign({
+    etat:"occasion",marque:"",modele:"",type:"Fourgon",immatriculation:"",
+    statut:"commande",commandeDate:"",preparationDate:"",lavageDate:"",
+    livraisonDate:"",livraisonReelle:"",
+    ct:{prevoir:false,date:"",realise:"",resultat:""},
+    mecanique:{prevoir:false,travaux:[],datePrevu:"",dateRealise:""},
+    accessoires:[],prix:"",financement:"Comptant",organismeFinancement:"",
+    reprise:{vehicule:"",immat:"",valeur:"",etat:""},
+    notes:"",archive:false
+  },c);
+  nv.id=gI();
+  nv.modifPar=U.name;
+  nv.modifAt=new Date().toISOString();
+  delete nv.description;
+  await dbS(nv);
+  const fresh=await dbL();
+  if(fresh){VS=fresh;render();}
+  aiMsgs[mi].create=null;
+  aiMsgs[mi].t+="\n\n✅ Dossier créé !";
+  toast("✅ Dossier "+nv.client+" créé","#3B82F6");
+  renderAI();
+}
+
 function cancelMod(mi){
   aiMsgs[mi].mod=null;
   aiMsgs[mi].t+="\n\n❌ Modification annulée.";
@@ -576,7 +610,11 @@ IMPORTANT - MODIFICATIONS DE DOSSIERS :
 Si l'utilisateur demande de modifier un dossier (changer une date, un statut, ajouter une info, etc.), tu dois répondre en JSON avec ce format EXACT sur une seule ligne à la fin de ta réponse :
 MODIFICATION_JSON:{"id":"ID_DU_DOSSIER","client":"NOM_CLIENT","champs":{"nomDuChamp":"valeur"},"description":"Ce que tu vas modifier"}
 Les champs modifiables sont : statut, livraisonDate (YYYY-MM-DD) = date de livraison prévue, commandeDate (YYYY-MM-DD), preparationDate (YYYY-MM-DD), lavageDate (YYYY-MM-DD), livraisonReelle (YYYY-MM-DD) = date de livraison réelle, prix, financement, notes, ct.date (YYYY-MM-DD), ct.realise (YYYY-MM-DD), ct.resultat (favorable/defavorable/prescriptions), ct.prevoir (true/false), mecanique.datePrevu (YYYY-MM-DD), mecanique.dateRealise (YYYY-MM-DD), mecanique.prevoir (true/false). ATTENTION : le champ date de livraison prévue s'appelle livraisonDate (pas livraisonPrevue).
-Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta réponse.`;
+Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta réponse.
+
+CRÉATION DE DOSSIER : Si l'utilisateur demande de créer un nouveau dossier, utilise ce format :
+CREATION_JSON:{"client":"NOM","etat":"occasion","marque":"Marque","modele":"Modele","type":"Fourgon","immatriculation":"XX-000-XX","statut":"commande","livraisonDate":"YYYY-MM-DD","commandeDate":"YYYY-MM-DD","prix":"","financement":"Comptant","notes":"","description":"Résumé de ce que tu crées"}
+Champs optionnels : immatriculation, livraisonDate, commandeDate, prix, financement, notes, modele, type. etat = "neuf" ou "occasion".`;
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1000,system:sys,messages:aiMsgs.slice(0,-1).concat([{r:"u",t:msg}]).map(m=>({role:m.r==="u"?"user":"assistant",content:m.t||" "})).filter(m=>m.content.trim())})});
     const data=await r.json();
     let fullText=data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre.";
@@ -590,7 +628,15 @@ Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta répons
         fullText=fullText.replace(/MODIFICATION_JSON:\{[\s\S]*?\}/,"").trim();
       }catch(e){}
     }
-    aiMsgs.push({r:"a",t:fullText,mod:pendingMod});
+    const createMatch=fullText.match(/CREATION_JSON:(\{[\s\S]*?\})(?:\s|$)/);
+    let pendingCreate=null;
+    if(createMatch){
+      try{
+        pendingCreate=JSON.parse(createMatch[1]);
+        fullText=fullText.replace(/CREATION_JSON:\{[\s\S]*?\}/,"").trim();
+      }catch(e){}
+    }
+    aiMsgs.push({r:"a",t:fullText,mod:pendingMod,create:pendingCreate});
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
 }
