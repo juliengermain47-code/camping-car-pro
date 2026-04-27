@@ -502,7 +502,14 @@ function aiSugg(s){document.getElementById("ai-inp").value=s;aiSend();}
 async function confirmMod(mi){
   const mod=aiMsgs[mi]?.mod;
   if(!mod)return;
-  const v=VS.find(x=>x.id===mod.id);
+  // Search by id first, then by client name as fallback
+  let v=VS.find(x=>x.id===mod.id);
+  if(!v&&mod.client)v=VS.find(x=>x.client?.toLowerCase()===mod.client?.toLowerCase());
+  if(!v){
+    // Reload from DB and retry
+    const fresh=await dbL();
+    if(fresh){VS=fresh;v=VS.find(x=>x.id===mod.id);}
+  }
   if(!v){toast("Dossier introuvable","#EF4444");return;}
   const up={...v};
   // Apply fields
@@ -541,7 +548,7 @@ async function aiSend(){
 
 IMPORTANT - MODIFICATIONS DE DOSSIERS :
 Si l'utilisateur demande de modifier un dossier (changer une date, un statut, ajouter une info, etc.), tu dois répondre en JSON avec ce format EXACT sur une seule ligne à la fin de ta réponse :
-MODIFICATION_JSON:{"id":"ID_DU_DOSSIER","champs":{"nomDuChamp":"valeur"},"description":"Ce que tu vas modifier"}
+MODIFICATION_JSON:{"id":"ID_DU_DOSSIER","client":"NOM_CLIENT","champs":{"nomDuChamp":"valeur"},"description":"Ce que tu vas modifier"}
 Les champs modifiables sont : statut, livraisonDate (YYYY-MM-DD), commandeDate (YYYY-MM-DD), preparationDate (YYYY-MM-DD), lavageDate (YYYY-MM-DD), livraisonReelle (YYYY-MM-DD), prix, financement, notes, ct.date (YYYY-MM-DD), ct.resultat (favorable/defavorable/prescriptions), ct.prevoir (true/false), mecanique.datePrevu (YYYY-MM-DD), mecanique.dateRealise (YYYY-MM-DD), mecanique.prevoir (true/false).
 Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta réponse.`;
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1000,system:sys,messages:aiMsgs.slice(0,-1).concat([{r:"u",t:msg}]).map(m=>({role:m.r==="u"?"user":"assistant",content:m.t||" "})).filter(m=>m.content.trim())})});
