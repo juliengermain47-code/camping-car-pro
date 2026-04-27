@@ -506,9 +506,11 @@ function renderAI(){
   const loader=aiLoading?`<div style="display:flex;margin-bottom:8px"><div style="background:#F1F5F9;padding:10px 14px;border-radius:16px 16px 16px 4px;display:flex;gap:4px;align-items:center"><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 0ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 150ms infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94A3B8;animation:pulse 1s 300ms infinite"></div></div></div>`:"";
   const suggHtml=aiMsgs.length<=1?`<div style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:5px">${sugg.map(s=>`<button onclick="aiSugg('${es(s)}')" style="padding:5px 10px;background:${c1}15;color:${c1};border:1px solid ${c1}30;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${s}</button>`).join("")}</div>`:"";
 
+  // Restore saved button position
+  const aiPos=JSON.parse(localStorage.getItem('aiPos')||'{"bottom":24,"right":24}');
   el.innerHTML=`
-    <button onclick="toggleAI()" style="position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px ${c1}80;z-index:400;display:flex;align-items:center;justify-content:center;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">${aiOpen?"✕":"🤖"}</button>
-    ${aiOpen?`<div style="position:fixed;bottom:92px;right:24px;width:min(400px,calc(100vw - 48px));height:min(560px,calc(100vh - 120px));background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0">
+    <button id="ai-btn" style="position:fixed;bottom:${aiPos.bottom}px;right:${aiPos.right}px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});color:#fff;border:none;font-size:24px;cursor:grab;box-shadow:0 4px 20px ${c1}80;z-index:400;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none">${aiOpen?"✕":"🤖"}</button>
+    ${aiOpen?`<div id="ai-panel" style="position:fixed;bottom:${aiPos.bottom+68}px;right:${aiPos.right}px;width:min(400px,calc(100vw - 48px));height:min(560px,calc(100vh - 120px));background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0">
       <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:14px 18px;display:flex;align-items:center;gap:10px">
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
         <div><div style="font-weight:800;font-size:14px;color:#fff">Assistant Concession</div><div style="font-size:11px;color:#64748B">${U?.name} · ${VS.length} dossiers</div></div>
@@ -522,6 +524,49 @@ function renderAI(){
       </div>
     </div>`:""}`;
   if(aiOpen){setTimeout(()=>{const m=document.getElementById("ai-msgs");if(m)m.scrollTop=m.scrollHeight;},50);}
+  // Make button draggable
+  setTimeout(()=>{
+    const btn=document.getElementById("ai-btn");
+    if(!btn)return;
+    let dragging=false,startX,startY,startRight,startBottom,moved=false;
+    const onStart=e=>{
+      dragging=true;moved=false;
+      const pt=e.touches?e.touches[0]:e;
+      startX=pt.clientX;startY=pt.clientY;
+      const s=window.getComputedStyle(btn);
+      startRight=parseInt(s.right);startBottom=parseInt(s.bottom);
+      btn.style.cursor="grabbing";
+      e.preventDefault();
+    };
+    const onMove=e=>{
+      if(!dragging)return;
+      const pt=e.touches?e.touches[0]:e;
+      const dx=pt.clientX-startX,dy=pt.clientY-startY;
+      if(Math.abs(dx)>5||Math.abs(dy)>5)moved=true;
+      const newRight=Math.max(8,Math.min(window.innerWidth-64,startRight-dx));
+      const newBottom=Math.max(8,Math.min(window.innerHeight-64,startBottom-dy));
+      btn.style.right=newRight+"px";
+      btn.style.bottom=newBottom+"px";
+      const panel=document.getElementById("ai-panel");
+      if(panel){panel.style.right=newRight+"px";panel.style.bottom=(newBottom+68)+"px";}
+      e.preventDefault();
+    };
+    const onEnd=e=>{
+      if(!dragging)return;
+      dragging=false;
+      btn.style.cursor="grab";
+      const s=window.getComputedStyle(btn);
+      const pos={right:parseInt(s.right),bottom:parseInt(s.bottom)};
+      localStorage.setItem("aiPos",JSON.stringify(pos));
+      if(!moved)toggleAI();
+    };
+    btn.addEventListener("mousedown",onStart);
+    btn.addEventListener("touchstart",onStart,{passive:false});
+    document.addEventListener("mousemove",onMove);
+    document.addEventListener("touchmove",onMove,{passive:false});
+    document.addEventListener("mouseup",onEnd);
+    document.addEventListener("touchend",onEnd);
+  },50);
 }
 
 function aiSugg(s){document.getElementById("ai-inp").value=s;aiSend();}
