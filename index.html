@@ -623,9 +623,44 @@ function setClItem(key,field,val){
   if(!clData[key])clData[key]={etat:"",commentaire:""};
   clData[key][field]=val;
   if(field==="etat"){
-    renderChecklist();
+    // Update only the row without re-rendering the whole list
+    const rowId="cl-row-"+key.replace(/[^a-zA-Z0-9]/g,"_");
+    const row=document.getElementById(rowId);
+    if(row){
+      const isOk=val==="ok",isDef=val==="defaut",isNc=val==="nc";
+      row.style.background=isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#FAFAFA":"#fff";
+      // Update button styles
+      const btns=row.querySelectorAll("button");
+      if(btns[0]){btns[0].style.borderColor=isOk?"#22C55E":"#E2E8F0";btns[0].style.background=isOk?"#DCFCE7":"#F8FAFC";btns[0].style.color=isOk?"#166534":"#64748B";}
+      if(btns[1]){btns[1].style.borderColor=isDef?"#EF4444":"#E2E8F0";btns[1].style.background=isDef?"#FEE2E2":"#F8FAFC";btns[1].style.color=isDef?"#991B1B":"#64748B";}
+      if(btns[2]){btns[2].style.borderColor=isNc?"#94A3B8":"#E2E8F0";btns[2].style.background=isNc?"#F1F5F9":"#F8FAFC";btns[2].style.color=isNc?"#475569":"#64748B";}
+      // Show/hide comment input
+      let commentDiv=row.querySelector(".cl-comment");
+      if(isDef){
+        if(!commentDiv){
+          commentDiv=document.createElement("div");
+          commentDiv.className="cl-comment";
+          commentDiv.style.marginTop="5px";
+          const safeKey=key.replace(/'/g,"\'");
+          commentDiv.innerHTML=`<input type="text" value="${(clData[key].commentaire||"").replace(/"/g,"&quot;")}" oninput="if(!clData['${safeKey}'])clData['${safeKey}']={etat:'defaut',commentaire:''};clData['${safeKey}'].commentaire=this.value" placeholder="Décrire le défaut..." style="margin:0;font-size:12px;background:#FEF2F2;border-color:#FCA5A5;width:100%;padding:6px 10px;border-radius:6px;border:1.5px solid #FCA5A5;outline:none"/>`;
+          row.appendChild(commentDiv);
+        }
+      } else {
+        if(commentDiv) commentDiv.remove();
+      }
+      // Update progress bar
+      const total=CL_ITEMS.length;
+      const done=CL_ITEMS.filter(it=>(clData[it]?.etat==="ok"||clData[it]?.etat==="nc")).length;
+      const defauts=CL_ITEMS.filter(it=>clData[it]?.etat==="defaut").length;
+      const pct=Math.round(done/total*100);
+      const bar=document.getElementById("cl-progress-bar");
+      const info=document.getElementById("cl-progress-info");
+      if(bar){bar.style.width=pct+"%";bar.style.background=defauts>0?"#EF4444":"#22C55E";}
+      if(info){info.innerHTML=`${done}/${total} · ${defauts>0?`<span style="color:#EF4444">${defauts} défaut${defauts>1?"s":""}</span>`:`<span style="color:#22C55E">0 défaut</span>`}`;}
+    } else {
+      renderChecklist();
+    }
   }
-  // commentaire: update only the input value, no re-render
 }
 
 function renderChecklist(){
@@ -643,7 +678,7 @@ function renderChecklist(){
       const d=clData[it]||{etat:"",commentaire:""};
       const isOk=d.etat==="ok", isDef=d.etat==="defaut", isNc=d.etat==="nc";
       const key=it.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-      return`<div style="padding:9px 14px;border-bottom:1px solid #F8FAFC;background:${isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#FAFAFA":"#fff"}">
+      const rowId="cl-row-"+it.replace(/[^a-zA-Z0-9]/g,"_");return`<div id="${rowId}" style="padding:9px 14px;border-bottom:1px solid #F8FAFC;background:${isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#FAFAFA":"#fff"}">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="flex:1;font-size:12px;font-weight:600;color:#1E293B;min-width:160px">${it}</span>
           <div style="display:flex;gap:4px;flex-shrink:0">
@@ -670,9 +705,9 @@ function renderChecklist(){
         </div>
         <div style="padding:14px 20px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:14px">
           <div style="flex:1;height:8px;background:#E2E8F0;border-radius:10px;overflow:hidden">
-            <div style="height:100%;background:${defauts>0?"#EF4444":"#22C55E"};width:${pct}%;transition:width 0.3s;border-radius:10px"></div>
+            <div id="cl-progress-bar" style="height:100%;background:${defauts>0?"#EF4444":"#22C55E"};width:${pct}%;transition:width 0.3s;border-radius:10px"></div>
           </div>
-          <div style="font-size:12px;font-weight:700;color:#64748B;white-space:nowrap">${done}/${total} · ${defauts>0?`<span style="color:#EF4444">${defauts} défaut${defauts>1?"s":""}</span>`:`<span style="color:#22C55E">0 défaut</span>`}</div>
+          <div id="cl-progress-info" style="font-size:12px;font-weight:700;color:#64748B;white-space:nowrap">${done}/${total} · ${defauts>0?`<span style="color:#EF4444">${defauts} défaut${defauts>1?"s":""}</span>`:`<span style="color:#22C55E">0 défaut</span>`}</div>
         </div>
         <div style="max-height:60vh;overflow-y:auto">${rows}</div>
         <div style="padding:14px 20px;border-top:1px solid #E2E8F0;display:flex;gap:8px;background:#fff">
