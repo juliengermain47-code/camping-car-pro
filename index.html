@@ -515,6 +515,18 @@ const lnEl = document.getElementById("ln");
 if(lnEl) lnEl.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 document.addEventListener("click",e=>{if(NO&&!document.getElementById("nw").contains(e.target)){NO=false;document.getElementById("np").style.display="none";}});
 bRL();
+// Reset button positions if off screen
+(()=>{
+  ['aiPos','calPos','pbPos'].forEach(key=>{
+    try{
+      const pos=JSON.parse(localStorage.getItem(key)||'{}');
+      if(pos.right>window.innerWidth-64||pos.bottom>window.innerHeight-64){
+        localStorage.removeItem(key);
+      }
+    }catch(e){localStorage.removeItem(key);}
+  });
+})();
+
 // Auto-login if session saved
 (async()=>{
   const saved=localStorage.getItem('loisirs47_session');
