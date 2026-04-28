@@ -148,7 +148,7 @@ const FI=["Comptant","Crédit classique","LOA","LLD","Crédit ballon"];
 const TP=["Vidange","Courroie distri","Révision complète","Freins","Filtres","Bougies","Batterie","Climatisation","Plaquettes","Pneus"];
 const RL=[{v:"responsable",l:"📊 Responsable",d:"Vue complète + statistiques",e:false,c:"#6B7AE8"},{v:"vendeur",l:"🤝 Vendeur",d:"Gestion des dossiers clients",e:false,c:"#8B5CF6"},{v:"sav",l:"🛠️ SAV / Magasin",d:"Accès complet SAV",e:false,c:"#14B8A6"},{v:"preparateur",l:"🔧 Préparateur",d:"Préparation, mécanique, lavage",e:false,c:"#F59E0B"},{v:"nettoyage",l:"🧼 Société de nettoyage",d:"Accès restreint : lavages uniquement",e:true,c:"#0EA5E9"},{v:"mecanicien",l:"⚙️ Mécanicien ext.",d:"Accès restreint : mécanique",e:true,c:"#E85A3A"}];
 const CU=["#6B7AE8","#E85A3A","#2DB57A","#F59E0B","#8B5CF6","#0EA5E9","#EC4899","#14B8A6"];
-const NV=()=>({etat:"neuf",client:"",marque:MQ[0],modele:"",type:TY[0],immatriculation:"",statut:"commande",commandeDate:"",preparationDate:"",lavageDate:"",livraisonDate:"",livraisonReelle:"",ct:{prevoir:false,date:"",realise:"",resultat:""},mecanique:{prevoir:false,travaux:[],datePrevu:"",dateRealise:""},accessoires:[],prix:"",financement:FI[0],organismeFinancement:"",reprise:{vehicule:"",immat:"",valeur:"",etat:""},notes:"",modifPar:"",modifAt:"",archive:false});
+const NV=()=>({etat:"neuf",client:"",marque:MQ[0],modele:"",type:TY[0],immatriculation:"",statut:"commande",commandeDate:"",preparationDate:"",lavageDate:"",livraisonDate:"",livraisonReelle:"",ct:{prevoir:false,date:"",realise:"",resultat:""},mecanique:{prevoir:false,travaux:[],datePrevu:"",dateRealise:""},accessoires:[],prix:"",financement:FI[0],organismeFinancement:"",reprise:{vehicule:"",immat:"",valeur:"",etat:""},notes:"",modifPar:"",modifAt:"",archive:false,financementSigne:false});
 
 let U=null,VS=[],SR="responsable",fST="tous",fET="tous",SV="",VM="cards",NF=[],NO=false,PD=null,CH=null,showArchive=false;
 
@@ -274,6 +274,8 @@ function rCard(v){
   if(v.preparationDate)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Prépa. ${fmt(v.preparationDate)}</div>`);
   if(v.lavageDate)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Lavage ${fmt(v.lavageDate)}</div>`);
   if(accA>0)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:#F59E0B;color:#fff;flex-shrink:0">!</span><span style="color:#92400E">${accA} accessoire${accA>1?"s":""} en attente</span></div>`);
+  const defautsCheck=Object.entries(v.checklist||{}).filter(([,x])=>x.etat==="defaut");
+  if(defautsCheck.length>0)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:#EF4444;color:#fff;flex-shrink:0">⚠</span><span style="color:#991B1B">${defautsCheck.length} défaut${defautsCheck.length>1?"s":""} checklist</span></div>`);
   if(v.reprise?.vehicule)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Reprise : ${es(v.reprise.vehicule)}</div>`);
   return`<div class="card" onclick="oV('${v.id}')" style="${urg?"border:1.5px solid #EF444450;box-shadow:0 0 0 2px #EF444440,0 4px 16px rgba(0,0,0,0.07)":""}">
     ${urg?`<div style="position:absolute;top:12px;right:12px;background:#EF4444;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">${d<=0?"⚠ EN RETARD":"⚡ J-"+d}</div>`:""}
@@ -285,7 +287,7 @@ function rCard(v){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin-top:10px">${dots.join("")}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;flex-wrap:wrap;gap:6px">
       <div style="font-size:12px"><span style="color:#94A3B8">Livraison </span><strong style="color:${urg?"#EF4444":"#0F172A"}">${fmt(v.livraisonDate)}</strong>${v.livraisonReelle?`<span style="color:#22C55E;margin-left:6px;font-size:11px">✓ ${fmt(v.livraisonReelle)}</span>`:""}</div>
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">${v.financement&&v.financement!=="Comptant"?`<span style="font-size:11px;color:#8B5CF6;font-weight:600;background:#F5F3FF;padding:2px 7px;border-radius:10px">${es(v.financement)}</span>`:""}<span style="font-weight:800;font-size:14px;font-family:monospace">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</span>${bdg(v.statut)}</div>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">${v.financement&&v.financement!=="Comptant"?`<span style="font-size:11px;color:#8B5CF6;font-weight:600;background:#F5F3FF;padding:2px 7px;border-radius:10px;border:1px solid ${v.financementSigne?"#8B5CF6":"#E2E8F0"}">${es(v.financement)} ${v.financementSigne?"✍️":"⏳"}</span>`:""}<span style="font-weight:800;font-size:14px;font-family:monospace">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</span>${bdg(v.statut)}</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #F8FAFC">
       ${v.modifPar?`<div style="display:flex;align-items:center;gap:6px">${av(v.modifPar,18)}<span style="font-size:11px;color:#94A3B8">Modifié par <b style="color:#64748B">${es(v.modifPar)}</b>${v.modifAt?" · "+fmtT(v.modifAt):""}</span></div>`:"<div></div>"}
@@ -307,7 +309,7 @@ function rTable(filt){
       <td style="text-align:center">${!v.ct?.prevoir?"—":v.ct.resultat==="favorable"?"✅":v.ct.date?"⏳":"❓"}</td>
       <td style="text-align:center">${!v.mecanique?.prevoir?"—":v.mecanique.dateRealise?"✅":v.mecanique.datePrevu?"⏳":"❓"}</td>
       <td style="text-align:center">${(v.accessoires||[]).length===0?"—":aA>0?`<span style="color:#F59E0B;font-weight:700">${aA} att.</span>`:`<span style="color:#22C55E">✓</span>`}</td>
-      <td style="font-size:11px;color:#8B5CF6;white-space:nowrap">${es(v.financement||"")}</td>
+      <td style="font-size:11px;color:#8B5CF6;white-space:nowrap">${es(v.financement||"")}${v.financement&&v.financement!=="Comptant"?v.financementSigne?" ✍️":" ⏳":""}</td>
       <td style="font-family:monospace;font-weight:700;white-space:nowrap">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</td>
       <td>${v.modifPar?`<div style="display:flex;align-items:center;gap:5px">${av(v.modifPar,20)}<span style="font-size:11px;color:#64748B">${es(v.modifPar)}</span></div>`:""}</td>
     </tr>`;
@@ -362,7 +364,7 @@ function rPanel(isNew){
     :`<div class="g2"><div><label class="lbl">Statut</label>${sel("statut",Object.entries(ST).filter(([k])=>k!=="preparation"&&k!=="lavage").map(([k,s])=>({v:k,l:s.l})),"")}</div>${inp("Date commande","commandeDate","date")}${inp("Date préparation","preparationDate","date")}${inp("Date lavage","lavageDate","date")}${inp("Livraison prévue","livraisonDate","date")}${inp("Livraison réelle","livraisonReelle","date")}</div>`}
     ${!isTech?`<div class="sec">🔍 Contrôle Technique</div>
     ${tog("CT à prévoir","prevoir","ct")}
-    ${v.ct?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date CT prévue","date","date","ct")}${inp("Date CT réalisée","realise","date","ct")}<div style="grid-column:1/-1"><label class="lbl">Résultat</label>${sel("resultat",[{v:"",l:"— En attente —"},{v:"favorable",l:"✅ Favorable"},{v:"defavorable",l:"❌ Défavorable"},{v:"prescriptions",l:"⚠️ Avec prescriptions"}],"ct")}</div></div>`:""}
+    ${v.ct?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date CT prévue","date","date","ct")}<div style="grid-column:1/-1"><label class="lbl">Résultat</label>${sel("resultat",[{v:"",l:"— En attente —"},{v:"favorable",l:"✅ Favorable"},{v:"defavorable",l:"❌ Défavorable"},{v:"prescriptions",l:"⚠️ Avec prescriptions"}],"ct")}</div></div>`:""}
     <div class="sec">⚙️ Mécanique</div>
     ${tog("Intervention mécanique à prévoir","prevoir","mecanique")}
     ${v.mecanique?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date prévue","datePrevu","date","mecanique")}${inp("Date réalisée","dateRealise","date","mecanique")}</div>
@@ -374,6 +376,7 @@ function rPanel(isNew){
     <div style="display:flex;gap:6px;margin-top:4px"><input type="text" id="nac" placeholder="Ex: Store Fiamma, câble 220V..." style="margin:0" onkeydown="if(event.key==='Enter')aAc()"/><button class="btn" onclick="aAc()" style="padding:8px 16px;background:#6B7AE8;color:#fff;font-size:15px">+</button></div>
 `:''}    <div class="sec">💶 Financement</div>
     <div class="g2"><div><label class="lbl">Type</label>${sel("financement",FI,"")}</div>${inp("Organisme","organismeFinancement","")}<div style="grid-column:1/-1">${inp("Prix de vente (€)","prix","number")}</div></div>
+    ${v.financement&&v.financement!=="Comptant"?`<div style="margin-top:8px">${tog("Financement signé ✍️","financementSigne","")}</div>`:""}
     ${!isTech?`<div class="sec">🔄 Reprise véhicule</div>
     <div class="g2">${inp("Véhicule repris","vehicule","","reprise")}${inp("Immatriculation","immat","","reprise")}${inp("Valeur (€)","valeur","","reprise")}${inp("État","etat","","reprise")}</div>
 `:''}    <div class="sec">📝 Notes</div>
@@ -400,7 +403,35 @@ function sAc(i,f,v){PD.accessoires[i][f]=v;}
 function aAc(){const v=document.getElementById("nac").value.trim();if(!v)return;PD.accessoires.push({desc:v,commande:false,recu:false});rPanel(!PD.id);}
 function rAc(i){PD.accessoires.splice(i,1);rPanel(!PD.id);}
 function cnfDel(){const d=document.getElementById("dconf");d.style.display=d.style.display==="none"?"flex":"none";}
-async function svV(){PD.id=PD.id||gI();PD.modifPar=U.name;PD.modifAt=new Date().toISOString();await dbS(PD);toast(`✅ ${PD.client} enregistré`,"#22C55E");cPanel();}
+function autoStatut(v){
+  // Ne change que si le dossier est en commande
+  if(v.statut!=="commande")return v.statut;
+  
+  const ctOk = !v.ct?.prevoir || v.ct?.resultat==="favorable";
+  const mecaOk = !v.mecanique?.prevoir || !!v.mecanique?.dateRealise;
+  const lavageOk = !!v.lavage?.realise;
+  const financementOk = v.financement==="Comptant" || !!v.financementSigne;
+  
+  if(ctOk && mecaOk && lavageOk && financementOk){
+    return "pret";
+  }
+  return v.statut;
+}
+
+async function svV(){
+  PD.id=PD.id||gI();
+  const ancienStatut=PD.statut;
+  PD.statut=autoStatut(PD);
+  PD.modifPar=U.name;PD.modifAt=new Date().toISOString();
+  await dbS(PD);
+  if(PD.statut!==ancienStatut){
+    toast(`🎉 ${PD.client} — Statut passé à "${ST[PD.statut]?.l||PD.statut}"!`,"#22C55E");
+    await dbSN({type:"statut",icon:"🎉",couleur:"#22C55E",titre:`${PD.client} — Prêt à livrer !`,detail:`Toutes les conditions sont remplies`});
+  } else {
+    toast(`✅ ${PD.client} enregistré`,"#22C55E");
+  }
+  cPanel();
+}
 async function archiveV(){const n=PD.client;PD.archive=true;PD.modifPar=U.name;PD.modifAt=new Date().toISOString();await dbS(PD);toast(`📦 ${n} archivé`,"#F59E0B");cPanel();}
 async function unarchiveV(){PD.archive=false;PD.modifPar=U.name;PD.modifAt=new Date().toISOString();await dbS(PD);toast(`✅ ${PD.client} désarchivé`,"#22C55E");cPanel();}
 async function archiveAllLivres(){const livres=VS.filter(v=>v.statut==="livre"&&!v.archive);if(!livres.length){toast("Aucun dossier livré à archiver","#94A3B8");return;}for(const v of livres){await dbS({...v,archive:true,modifPar:U.name,modifAt:new Date().toISOString()});}toast(`📦 ${livres.length} dossier(s) archivé(s)`,"#F59E0B");}
@@ -428,7 +459,9 @@ function rNet(){
     </div>
   </div>`;}
 
-async function mLav(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cn-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const up={...v,lavage:{...v.lavage,realise:today,commentaire:cmt,par:U.name},statut:v.statut==="lavage"?"pret":v.statut,modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"lavage",icon:"🧼",couleur:"#0EA5E9",titre:`Lavage terminé — ${v.client}`,detail:`${v.marque} ${v.modele} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Lavage enregistré","#22C55E");const d=await dbL();if(d)VS=d;rNet();}
+async function mLav(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cn-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const upLav={...v,lavage:{...v.lavage,realise:today,commentaire:cmt,par:U.name},statut:v.statut};
+  upLav.statut=autoStatut(upLav);
+  const up={...upLav,modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"lavage",icon:"🧼",couleur:"#0EA5E9",titre:`Lavage terminé — ${v.client}`,detail:`${v.marque} ${v.modele} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Lavage enregistré","#22C55E");const d=await dbL();if(d)VS=d;rNet();}
 
 function rMec(){
   const af=VS.filter(v=>v.mecanique?.prevoir&&v.statut!=="livre");
@@ -450,7 +483,9 @@ function rMec(){
     </div>
   </div>`;}
 
-async function mFait(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cm-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const up={...v,mecanique:{...v.mecanique,dateRealise:today,commentaireMeca:cmt,parMeca:U.name},modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"mecanique",icon:"⚙️",couleur:"#F59E0B",titre:`Mécanique terminée — ${v.client}`,detail:`${v.marque} ${v.modele} · ${(v.mecanique.travaux||[]).join(", ")||"travaux"} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Intervention enregistrée","#22C55E");const d=await dbL();if(d)VS=d;rMec();}
+async function mFait(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cm-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const upMec={...v,mecanique:{...v.mecanique,dateRealise:today,commentaireMeca:cmt,parMeca:U.name}};
+  upMec.statut=autoStatut(upMec);
+  const up={...upMec,modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"mecanique",icon:"⚙️",couleur:"#F59E0B",titre:`Mécanique terminée — ${v.client}`,detail:`${v.marque} ${v.modele} · ${(v.mecanique.travaux||[]).join(", ")||"travaux"} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Intervention enregistrée","#22C55E");const d=await dbL();if(d)VS=d;rMec();}
 
 const lnEl = document.getElementById("ln");
 if(lnEl) lnEl.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
@@ -689,8 +724,8 @@ async function aiSend(){
   aiMsgs.push({r:"u",t:msg});aiLoading=true;renderAI();
   try{
     const today2=new Date();const dw=today2.getDay();const nm2=new Date(today2);nm2.setDate(today2.getDate()+(dw===0?1:8-dw));const ns2=new Date(nm2);ns2.setDate(nm2.getDate()+6);
-    const ctx=JSON.stringify(VS.map(v=>({id:v.id,client:v.client,etat:v.etat,marque:v.marque,modele:v.modele,immatriculation:v.immatriculation||null,statut:v.statut,livraisonPrevue:v.livraisonDate||null,lavageDate:v.lavageDate||null,lavageRealise:v.lavage?.realise||null,lavageCommentaire:v.lavage?.commentaire||null,ct:v.ct?.prevoir?{prevu:v.ct.date,realise:v.ct.realise,resultat:v.ct.resultat}:null,mecanique:v.mecanique?.prevoir?{travaux:v.mecanique.travaux,datePrevu:v.mecanique.datePrevu,dateRealise:v.mecanique.dateRealise,commentaire:v.mecanique.commentaireMeca||null}:null,accessoiresEnAttente:(v.accessoires||[]).filter(a=>!a.recu).map(a=>a.desc),notes:v.notes||null})));
-    const sys=`Tu es l'assistant de Loisirs 47. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents.
+    const ctx=JSON.stringify(VS.map(v=>({id:v.id,client:v.client,etat:v.etat,marque:v.marque,modele:v.modele,immatriculation:v.immatriculation||null,statut:v.statut,livraisonPrevue:v.livraisonDate||null,lavageDate:v.lavageDate||null,lavageRealise:v.lavage?.realise||null,lavageCommentaire:v.lavage?.commentaire||null,ct:v.ct?.prevoir?{prevu:v.ct.date,realise:v.ct.realise,resultat:v.ct.resultat}:null,mecanique:v.mecanique?.prevoir?{travaux:v.mecanique.travaux,datePrevu:v.mecanique.datePrevu,dateRealise:v.mecanique.dateRealise,commentaire:v.mecanique.commentaireMeca||null}:null,accessoiresEnAttente:(v.accessoires||[]).filter(a=>!a.recu).map(a=>a.desc),notes:v.notes||null,defautsChecklist:Object.entries(v.checklist||{}).filter(([,x])=>x.etat==="defaut").map(([k,x])=>({point:k,commentaire:x.commentaire||""}))})));
+    const sys=`Tu es l'assistant de Loisirs 47. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents. IMPORTANT : si on te demande si une livraison est prête ou OK, vérifie toujours le champ defautsChecklist — s'il y a des défauts, signale-les clairement comme points bloquants.
 
 IMPORTANT - MODIFICATIONS DE DOSSIERS :
 Si l'utilisateur demande de modifier un dossier (changer une date, un statut, ajouter une info, etc.), tu dois répondre en JSON avec ce format EXACT sur une seule ligne à la fin de ta réponse :
