@@ -169,7 +169,7 @@ async function dbS(v){const row={id:v.id||gI(),data:{...v},modif_par:v.modifPar|
   return row.id;}
 async function dbD(id){const{error}=await sb.from("ventes").delete().eq("id",id);if(error)console.error(error);}
 async function dbSN(n){await sb.from("notifications").insert({data:n});}
-async function dbLN(){const{data}=await sb.from("notifications").select("*").order("created_at",{ascending:false}).limit(50);return(data||[]).map(r=>({...r.data,id:r.id,at:r.created_at,lu:r.lu}));}
+async function dbLN(){const since=new Date(Date.now()-7*86400000).toISOString();const{data}=await sb.from("notifications").select("*").order("created_at",{ascending:false}).gte("created_at",since).limit(30);return(data||[]).map(r=>({...r.data,id:r.id,at:r.created_at,lu:r.lu}));}
 
 function bRL(){
   const ri=document.getElementById("ri");
@@ -226,7 +226,18 @@ function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];localStorage.removeI
 function uHdr(){const c=uC(U.name);const i=U.name.split(" ").map(w=>w[0]?.toUpperCase()).slice(0,2).join("");const a=document.getElementById("uav");a.style.background=c;a.textContent=i;document.getElementById("unm").textContent=U.name;document.getElementById("url").textContent=U.role;const bh=document.getElementById("btn-histo");if(bh)bh.style.display=U.name==="Julien"?"inline-flex":"none";}
 
 function uNB(){const n=NF.filter(x=>!x.lu).length;const b=document.getElementById("nb");if(n>0){b.style.display="flex";b.textContent=n>9?"9+":n;}else b.style.display="none";}
-function tNotifs(){NO=!NO;document.getElementById("np").style.display=NO?"block":"none";if(NO)rN();}
+function tNotifs(){
+  NO=!NO;
+  document.getElementById("np").style.display=NO?"block":"none";
+  if(NO){
+    rN();
+    // Mark all as read
+    NF.forEach(n=>n.lu=true);
+    uNB();
+    // Update in DB
+    sb.from("notifications").update({lu:true}).eq("lu",false).then(()=>{});
+  }
+}
 function rN(){const ago=iso=>{if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);if(d<60)return"à l'instant";if(d<3600)return`il y a ${Math.floor(d/60)} min`;return`il y a ${Math.floor(d/3600)}h`;};const l=document.getElementById("nl");if(!NF.length){l.innerHTML=`<div style="padding:32px 16px;text-align:center;color:#94A3B8"><div style="font-size:32px">🔕</div><div style="font-size:13px;margin-top:8px">Aucune notification</div></div>`;return;}l.innerHTML=NF.map(n=>`<div class="ni" style="background:${n.lu?"#fff":"#F8FAFF"}"><div style="width:36px;height:36px;border-radius:10px;background:${(n.couleur||"#6B7AE8")}20;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${n.icon}</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">${es(n.titre)}</div><div style="font-size:11px;color:#64748B;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${es(n.detail||"")}</div><div style="font-size:10px;color:#CBD5E1;margin-top:4px">${ago(n.at)}</div></div></div>`).join("");}
 function clrN(){NF=[];uNB();rN();}
 
