@@ -233,6 +233,11 @@ function render(){
   if(U.role==="nettoyage"){rNet();renderAI();return;}
   if(U.role==="mecanicien"){rMec();renderAI();return;}
   const filt=VS.filter(v=>{ if(v.archive&&!showArchive)return false;if(fST!=="tous"&&v.statut!==fST)return false;if(fET!=="tous"&&v.etat!==fET)return false;if(SV){const q=SV.toLowerCase();if(![v.client,v.marque,v.modele,v.immatriculation,v.notes].join(" ").toLowerCase().includes(q))return false;}return true;});
+  // Sort filt
+  if(sortBy==='livraison') filt.sort((a,b)=>{if(!a.livraisonDate)return 1;if(!b.livraisonDate)return -1;return a.livraisonDate.localeCompare(b.livraisonDate);});
+  else if(sortBy==='ct') filt.sort((a,b)=>{const da=a.ct?.date||"";const db=b.ct?.date||"";if(!da)return 1;if(!db)return -1;return da.localeCompare(db);});
+  else if(sortBy==='lavage') filt.sort((a,b)=>{if(!a.lavageDate)return 1;if(!b.lavageDate)return -1;return a.lavageDate.localeCompare(b.lavageDate);});
+
   const eC=VS.filter(v=>v.statut!=="livre").length,lv=VS.filter(v=>v.statut==="livre").length,ug=VS.filter(v=>{const d=dD(v.livraisonDate);return d!==null&&d<=7&&v.statut!=="livre";}).length,ca=VS.reduce((s,v)=>s+Number(v.prix||0),0),rp=VS.filter(v=>v.reprise?.vehicule).length;
   document.getElementById("mc").innerHTML=`
 <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
@@ -252,6 +257,13 @@ function render(){
   <div style="display:flex;gap:5px;flex-wrap:wrap">
     <button class="fbtn ${fST==="tous"?"on":""}" onclick="setFST('tous')">Tous statuts</button>
     ${Object.entries(ST_FILTRES).map(([k,s])=>`<button class="fbtn ${fST===k?"on":""}" onclick="setFST('${k}')">${s.l}</button>`).join("")}
+  </div>
+  <div style="display:flex;gap:5px;align-items:center">
+    <span style="font-size:11px;color:#94A3B8;font-weight:600">Trier :</span>
+    <button class="fbtn ${sortBy==='livraison'?'on':''}" onclick="sortBy='livraison';render()">📅 Livraison</button>
+    <button class="fbtn ${sortBy==='ct'?'on':''}" onclick="sortBy='ct';render()">🔍 CT</button>
+    <button class="fbtn ${sortBy==='lavage'?'on':''}" onclick="sortBy='lavage';render()">🧼 Lavage</button>
+    <button class="fbtn ${sortBy==='none'?'on2':''}" onclick="sortBy='none';render()">✕</button>
   </div>
   <button class="fbtn" onclick="archiveAllLivres()" style="background:#F59E0B15;border-color:#F59E0B;color:#B45309">📦 Archiver livrés</button><div style="margin-left:auto;display:flex;gap:5px">
     <button class="fbtn ${showArchive?'on':''}" onclick="showArchive=!showArchive;render()" style="${showArchive?'background:#F59E0B;border-color:#F59E0B':''}" >📦 Archives</button>
@@ -504,6 +516,7 @@ bRL();
 
 // ── ASSISTANT IA ─────────────────────────────────────────────
 let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false;
+let sortBy='none';
 let calOpen=false,calView='month',calDate=new Date();
 
 function aiRoleColor(){if(!U)return["#6B7AE8","#8B5CF6"];const r=U.role;if(r==="nettoyage")return["#0EA5E9","#0284C7"];if(r==="mecanicien")return["#E85A3A","#C2410C"];if(r==="preparateur")return["#F59E0B","#D97706"];return["#6B7AE8","#8B5CF6"];}
