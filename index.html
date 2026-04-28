@@ -747,24 +747,46 @@ function cancelMod(mi){
 function toggleAIVoice(){
   if(aiListening){
     if(aiRecognition)aiRecognition.stop();
-    aiListening=false;renderAI();return;
+    aiListening=false;
+    // Just update mic button color without full re-render
+    const btn=document.querySelector("#ai-wrap button[title]");
+    if(btn){btn.style.background="#F1F5F9";btn.style.color="#64748B";btn.textContent="🎤";}
+    return;
   }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toast("Micro non supporté sur ce navigateur","#EF4444");return;}
+  if(!SR){toast("Micro non supporté sur ce navigateur — utilisez Chrome","#EF4444");return;}
   aiRecognition=new SR();
   aiRecognition.lang="fr-FR";
   aiRecognition.continuous=false;
   aiRecognition.interimResults=false;
-  aiRecognition.onstart=()=>{aiListening=true;renderAI();};
+  aiRecognition.onstart=()=>{
+    aiListening=true;
+    // Just update mic button without re-rendering
+    const btn=document.querySelector("#ai-wrap button[title]");
+    if(btn){btn.style.background="#EF4444";btn.style.color="#fff";btn.textContent="⏹";}
+    const inp=document.getElementById("ai-inp");
+    if(inp)inp.placeholder="Parlez...";
+  };
   aiRecognition.onresult=e=>{
     const t=e.results[0][0].transcript;
+    aiListening=false;
     const inp=document.getElementById("ai-inp");
-    if(inp)inp.value=t;
-    aiListening=false;renderAI();
-    setTimeout(()=>aiSend(),300);
+    if(inp){inp.value=t;inp.placeholder="Posez votre question...";}
+    const btn=document.querySelector("#ai-wrap button[title]");
+    if(btn){btn.style.background="#F1F5F9";btn.style.color="#64748B";btn.textContent="🎤";}
+    setTimeout(()=>aiSend(),400);
   };
-  aiRecognition.onerror=e=>{aiListening=false;renderAI();if(e.error!=="aborted")toast("Erreur micro : "+e.error,"#EF4444");};
-  aiRecognition.onend=()=>{aiListening=false;renderAI();};
+  aiRecognition.onerror=e=>{
+    aiListening=false;
+    const btn=document.querySelector("#ai-wrap button[title]");
+    if(btn){btn.style.background="#F1F5F9";btn.style.color="#64748B";btn.textContent="🎤";}
+    if(e.error!=="aborted")toast("Erreur micro : "+e.error,"#EF4444");
+  };
+  aiRecognition.onend=()=>{
+    aiListening=false;
+    const btn=document.querySelector("#ai-wrap button[title]");
+    if(btn){btn.style.background="#F1F5F9";btn.style.color="#64748B";btn.textContent="🎤";}
+  };
   aiRecognition.start();
 }
 
