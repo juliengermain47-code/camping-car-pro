@@ -1234,6 +1234,36 @@ async function saveChecklist(){
   closeChecklist();
 }
 
+function validerCategorie(catLabel){
+  const cat=CL_CATEGORIES.find(c=>c.cat===catLabel);
+  if(!cat)return;
+  cat.items.forEach(it=>{
+    if(!clData[it])clData[it]={etat:"",commentaire:""};
+    clData[it].etat="ok";
+    // Update row visually
+    const rowId="cl-row-"+it.replace(/[^a-zA-Z0-9]/g,"_");
+    const row=document.getElementById(rowId);
+    if(row){
+      row.style.background="#F0FDF4";
+      const btns=row.querySelectorAll("button");
+      if(btns[0]){btns[0].style.borderColor="#22C55E";btns[0].style.background="#DCFCE7";btns[0].style.color="#166534";}
+      if(btns[1]){btns[1].style.borderColor="#E2E8F0";btns[1].style.background="#F8FAFC";btns[1].style.color="#64748B";}
+      if(btns[2]){btns[2].style.borderColor="#E2E8F0";btns[2].style.background="#F8FAFC";btns[2].style.color="#64748B";}
+      const commentDiv=row.querySelector(".cl-comment");
+      if(commentDiv)commentDiv.remove();
+    }
+  });
+  // Update progress bar
+  const total=CL_ITEMS.length;
+  const done=CL_ITEMS.filter(it=>(clData[it]?.etat==="ok"||clData[it]?.etat==="nc")).length;
+  const defauts=CL_ITEMS.filter(it=>clData[it]?.etat==="defaut").length;
+  const pct=Math.round(done/total*100);
+  const bar=document.getElementById("cl-progress-bar");
+  const info=document.getElementById("cl-progress-info");
+  if(bar){bar.style.width=pct+"%";bar.style.background=defauts>0?"#EF4444":"#22C55E";}
+  if(info){info.innerHTML=`${done}/${total} · ${defauts>0?`<span style="color:#EF4444">${defauts} défaut${defauts>1?"s":""}</span>`:`<span style="color:#22C55E">0 défaut</span>`}`;}
+}
+
 function setClItem(key,field,val){
   if(!clData[key])clData[key]={etat:"",commentaire:""};
   clData[key][field]=val;
@@ -1305,7 +1335,11 @@ function renderChecklist(){
         ${isDef?`<div style="margin-top:5px"><input type="text" value="${(d.commentaire||"").replace(/"/g,"&quot;")}" oninput="if(!clData['${key}'])clData['${key}']={etat:'defaut',commentaire:''};clData['${key}'].commentaire=this.value" placeholder="Décrire le défaut..." style="margin:0;font-size:12px;background:#FEF2F2;border-color:#FCA5A5"/></div>`:""}
       </div>`;
     }).join("");
-    return`<div style="background:#EEF2FF;padding:8px 14px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #C7D2FE;margin-top:4px">${cat.cat}</div>${catRows}`;
+    const catKey=cat.cat;
+    return`<div style="background:#EEF2FF;padding:6px 14px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #C7D2FE;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
+      <span>${cat.cat}</span>
+      <button onclick="validerCategorie('${catKey.replace(/'/g,"\'")}');event.stopPropagation()" style="padding:2px 8px;background:#22C55E;color:#fff;border:none;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer">✓ Tout OK</button>
+    </div>${catRows}`;
   }).join("");
 
   el.innerHTML=`
