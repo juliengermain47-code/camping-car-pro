@@ -856,31 +856,53 @@ Champs optionnels : immatriculation, livraisonDate, commandeDate, prix, financem
     let fullText=data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre.";
     console.log("AI response:", fullText);
     // Check for modification JSON
-    const modMatch=fullText.match(/MODIFICATION_JSON:(\{[\s\S]*?\})(?:\s|$)/);
+    // Extract MODIFICATION_JSON with balanced braces
     let pendingMod=null;
-    if(modMatch){
-      try{
-        pendingMod=JSON.parse(modMatch[1]);
-        fullText=fullText.replace(/MODIFICATION_JSON:\{[\s\S]*?\}/,"").trim();
-      }catch(e){}
+    const modIdx=fullText.indexOf("MODIFICATION_JSON:{");
+    if(modIdx>=0){
+      let depth=0,jsonStart2=modIdx+18,end2=-1;
+      for(let i=jsonStart2;i<fullText.length;i++){
+        if(fullText[i]==="{")depth++;
+        else if(fullText[i]==="}"){depth--;if(depth===0){end2=i+1;break;}}
+      }
+      if(end2>0){
+        try{pendingMod=JSON.parse(fullText.substring(jsonStart2,end2));fullText=(fullText.substring(0,modIdx)+fullText.substring(end2)).trim();}catch(e){}
+      }
     }
-    const createMatch=fullText.match(/CREATION_JSON:(\{[\s\S]*?\})(?:\s|$)/);
+    // Extract CREATION_JSON with balanced braces
     let pendingCreate=null;
-    if(createMatch){
-      try{
-        pendingCreate=JSON.parse(createMatch[1]);
-        fullText=fullText.replace(/CREATION_JSON:\{[\s\S]*?\}/,"").trim();
-      }catch(e){}
+    const createIdx=fullText.indexOf("CREATION_JSON:{");
+    if(createIdx>=0){
+      let depth=0,jsonStart3=createIdx+15,end3=-1;
+      for(let i=jsonStart3;i<fullText.length;i++){
+        if(fullText[i]==="{")depth++;
+        else if(fullText[i]==="}"){depth--;if(depth===0){end3=i+1;break;}}
+      }
+      if(end3>0){
+        try{pendingCreate=JSON.parse(fullText.substring(jsonStart3,end3));fullText=(fullText.substring(0,createIdx)+fullText.substring(end3)).trim();}catch(e){}
+      }
     }
-    const clMatch=fullText.match(/CHECKLIST_JSON:(\{[\s\S]*?\})(?:\s|$)/);
+    // Extract CHECKLIST_JSON - find balanced braces
+    let pendingCL2=null;
+    const clIdx=fullText.indexOf("CHECKLIST_JSON:{");
+    if(clIdx>=0){
+      let depth=0,start=clIdx+16,end=-1;
+      const jsonStart=clIdx+15;
+      for(let i=jsonStart;i<fullText.length;i++){
+        if(fullText[i]==="{")depth++;
+        else if(fullText[i]==="}"){depth--;if(depth===0){end=i+1;break;}}
+      }
+      if(end>0){
+        try{
+          pendingCL2=JSON.parse(fullText.substring(jsonStart,end));
+          fullText=fullText.substring(0,clIdx)+fullText.substring(end);
+          fullText=fullText.trim();
+        }catch(e){console.log("CL parse error",e);}
+      }
+    }
+    const clMatch=null;
     let pendingCL=null;
-    if(clMatch){
-      try{
-        pendingCL=JSON.parse(clMatch[1]);
-        fullText=fullText.replace(/CHECKLIST_JSON:\{[\s\S]*?\}/,"").trim();
-      }catch(e){}
-    }
-    aiMsgs.push({r:"a",t:fullText,mod:pendingMod,create:pendingCreate,cl:pendingCL});
+    aiMsgs.push({r:"a",t:fullText,mod:pendingMod,create:pendingCreate,cl:pendingCL2});
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
 }
