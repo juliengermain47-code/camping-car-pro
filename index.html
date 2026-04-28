@@ -438,18 +438,22 @@ function aAc(){const v=document.getElementById("nac").value.trim();if(!v)return;
 function rAc(i){PD.accessoires.splice(i,1);rPanel(!PD.id);}
 function cnfDel(){const d=document.getElementById("dconf");d.style.display=d.style.display==="none"?"flex":"none";}
 function autoStatut(v){
-  // Ne change que si le dossier est en commande
-  if(v.statut!=="commande")return v.statut;
+  if(v.statut==="livre")return v.statut;
   
   const ctOk = !v.ct?.prevoir || v.ct?.resultat==="favorable";
   const mecaOk = !v.mecanique?.prevoir || !!v.mecanique?.dateRealise;
-  const lavageOk = !!v.lavage?.realise;
+  const lavageOk = !v.lavageDate || !!v.lavage?.realise;
   const financementOk = v.financement==="Comptant" || !!v.financementSigne;
-  
-  if(ctOk && mecaOk && lavageOk && financementOk){
+  // Checklist complète = tous les points ok ou nc, zéro défaut
+  const clItems=typeof CL_ITEMS!=="undefined"?CL_ITEMS:[];
+  const clDone=clItems.length===0||clItems.every(it=>v.checklist?.[it]?.etat==="ok"||v.checklist?.[it]?.etat==="nc"||!v.checklist?.[it]);
+  const clNoDefaut=clItems.every(it=>v.checklist?.[it]?.etat!=="defaut");
+  const prepaOk = !v.preparationDate || (clDone && clNoDefaut);
+
+  if(ctOk && mecaOk && lavageOk && financementOk && prepaOk){
     return "pret";
   }
-  return v.statut;
+  return v.statut==="pret"?"commande":v.statut;
 }
 
 async function svV(){
