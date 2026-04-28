@@ -450,10 +450,11 @@ function autoStatut(v){
   const clNoDefaut=clItems.every(it=>v.checklist?.[it]?.etat!=="defaut");
   const prepaOk = !v.preparationDate || (clDone && clNoDefaut);
 
-  if(ctOk && mecaOk && lavageOk && financementOk && prepaOk){
-    return "pret";
-  }
-  return v.statut==="pret"?"commande":v.statut;
+  const toutOk = ctOk && mecaOk && lavageOk && financementOk && prepaOk;
+  if(toutOk) return "pret";
+  // Si le dossier était "pret" mais une condition n'est plus remplie → repasser en commande
+  if(v.statut==="pret") return "commande";
+  return v.statut;
 }
 
 async function svV(){
@@ -1313,7 +1314,12 @@ async function saveChecklist(){
   const v=VS.find(x=>x.id===clVehicleId);
   if(!v)return;
   const up={...v,checklist:clData,modifPar:U.name,modifAt:new Date().toISOString()};
+  up.statut=autoStatut(up);
+  if(up.statut!==v.statut){
+    toast(`🔄 Statut mis à jour : ${ST[up.statut]?.l||up.statut}`,"#6B7AE8");
+  }
   await dbS(up);
+  const fresh=await dbL();if(fresh){VS=fresh;render();}
   toast("✅ Checklist enregistrée","#22C55E");
   closeChecklist();
 }
