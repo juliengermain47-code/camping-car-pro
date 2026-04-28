@@ -3,11 +3,37 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0F172A"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Loisirs 47"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
 <title>🚐 Loisirs 47</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#F1F5F9;min-height:100vh;color:#1E293B}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F1F5F9;min-height:100vh;color:#1E293B;transition:background 0.3s,color 0.3s}
+body.dark{background:#0F172A;color:#E2E8F0}
+body.dark .card{background:#1E293B;border-color:#334155;color:#E2E8F0}
+body.dark .card:hover{transform:translateY(-2px)}
+body.dark .hdr{background:#020617}
+body.dark .mn{background:#0F172A}
+body.dark .sc{background:#1E293B;border-color:#334155;color:#E2E8F0}
+body.dark .panel{background:#1E293B;color:#E2E8F0}
+body.dark .twrap{background:#1E293B;border-color:#334155}
+body.dark table{color:#E2E8F0}
+body.dark .dr:nth-child(even) td{background:#0F172A}
+body.dark .dr:hover td{background:#334155!important}
+body.dark input,body.dark select,body.dark textarea{background:#0F172A;border-color:#334155;color:#E2E8F0}
+body.dark .fbtn{background:#1E293B;border-color:#334155;color:#94A3B8}
+body.dark .fbtn.on{background:#6B7AE8;color:#fff}
+body.dark .fbtn.on2{background:#E2E8F0;color:#0F172A}
+body.dark .lbox{background:#1E293B;color:#E2E8F0}
+body.dark .ro{background:#0F172A;border-color:#334155}
+body.dark .sec{border-color:#334155}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:10px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -123,7 +149,9 @@ th{padding:11px 13px;text-align:left;font-size:10px;font-weight:800;color:#94A3B
         <div><div id="unm" style="font-size:12px;font-weight:700;color:#fff"></div><div id="url" style="font-size:10px;color:#64748B;text-transform:capitalize"></div></div>
         <button onclick="doLogout()" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;margin-left:4px">⏻</button>
       </div>
+      <button id="btn-histo-placeholder" style="display:none"></button>
       <button id="btn-histo" onclick="openHistorique()" style="display:none;background:#1E293B;color:#94A3B8;border:1px solid #334155" class="btn">📜 Historique</button>
+      <button onclick="toggleDark()" id="btn-dark" style="background:#1E293B;border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;color:#fff" title="Mode sombre">🌙</button>
       <button class="btn" onclick="sNew()" style="background:#6B7AE8;color:#fff">+ Nouveau dossier</button>
     </div>
   </div>
@@ -230,6 +258,7 @@ async function startSession(name, role){
   renderAI();
   renderCal();
   renderPB();
+  if(U?.name==="Julien")setTimeout(()=>pbCheckReminders(),2000);
 }
 
 function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];localStorage.removeItem('loisirs47_session');document.getElementById("app").style.display="none";document.getElementById("ev").style.display="none";document.getElementById("ls").style.display="flex";SR="responsable";bRL();}
@@ -271,7 +300,7 @@ function render(){
   <div class="sc"><div style="font-size:22px;font-weight:800;color:#0F172A;font-family:monospace">${ca.toLocaleString("fr-FR")} €</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">CA total</div></div>
 </div>
 <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;border:1px solid #E2E8F0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-  <input type="text" value="${es(SV)}" oninput="setSV(this.value)" placeholder="🔍  Client, marque, immatriculation..." style="min-width:220px;width:auto;margin:0"/>
+  <div style="display:flex;gap:6px;align-items:center;min-width:220px;flex:1"><input type="text" id="search-main" value="${es(SV)}" oninput="setSV(this.value)" placeholder="🔍  Client, marque, immatriculation..." style="width:100%;margin:0"/><button onclick="openScanPlaque()" title="Scanner une plaque" style="padding:7px 12px;background:#6B7AE8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:18px;flex-shrink:0;white-space:nowrap">📷</button></div>
   <div style="display:flex;gap:5px">
     <button class="fbtn ${fET==="tous"?"on2":""}" onclick="setFET('tous')">Tous</button>
     <button class="fbtn ${fET==="neuf"?"on2":""}" onclick="setFET('neuf')">✨ Neuf</button>
@@ -551,6 +580,20 @@ bRL();
     }catch(e){localStorage.removeItem(key);}
   });
 })();
+
+// Dark mode
+let darkMode=localStorage.getItem('darkMode')==='1';
+function toggleDark(){
+  darkMode=!darkMode;
+  localStorage.setItem('darkMode',darkMode?'1':'0');
+  applyDark();
+}
+function applyDark(){
+  document.body.classList.toggle('dark',darkMode);
+  const btn=document.getElementById('btn-dark');
+  if(btn)btn.textContent=darkMode?'☀️':'🌙';
+}
+applyDark();
 
 // Auto-login if session saved
 (async()=>{
@@ -1151,6 +1194,52 @@ async function pbLoad(){
   }catch(e){pbNotes=[];}
 }
 
+async function pbCheckReminders(){
+  if(!U||U.name!=="Julien")return;
+  const today=new Date().toISOString().split("T")[0];
+  const reminders=[];
+
+  VS.filter(v=>v.statut!=="livre"&&!v.archive).forEach(v=>{
+    const d=dD(v.livraisonDate);
+    const client=v.client||"—";
+    // Livraison J-1
+    if(d===1)reminders.push(`⚡ LIVRAISON DEMAIN — ${client} (${v.marque} ${v.modele||""})`);
+    // Livraison J-2
+    if(d===2)reminders.push(`📅 Livraison dans 2 jours — ${client} (${v.marque} ${v.modele||""})`);
+    // Livraison aujourd'hui
+    if(d===0)reminders.push(`🚨 LIVRAISON AUJOURD'HUI — ${client} (${v.marque} ${v.modele||""})`);
+    // CT dans 3 jours ou moins
+    if(v.ct?.prevoir&&v.ct?.date&&!v.ct?.resultat){
+      const dCT=dD(v.ct.date);
+      if(dCT!==null&&dCT>=0&&dCT<=3)reminders.push(`🔍 CT dans ${dCT===0?"aujourd'hui":dCT+"j"} — ${client}`);
+    }
+    // Accessoires en attente + livraison proche
+    const accA=(v.accessoires||[]).filter(a=>!a.recu).length;
+    if(accA>0&&d!==null&&d<=5)reminders.push(`📦 ${accA} accessoire${accA>1?"s":""} en attente — ${client} (livraison J-${d})`);
+    // Défaut checklist + livraison proche
+    const defauts=Object.values(v.checklist||{}).filter(x=>x.etat==="defaut").length;
+    if(defauts>0&&d!==null&&d<=5)reminders.push(`⚠️ ${defauts} défaut${defauts>1?"s":""} checklist non résolus — ${client}`);
+  });
+
+  if(reminders.length===0)return;
+
+  // Check if same reminders already exist today to avoid duplicates
+  const todayStr=new Date().toLocaleDateString("fr-FR");
+  const existing=pbNotes.filter(n=>n.texte.includes(todayStr));
+  if(existing.length>0)return; // Already added today
+
+  // Add all reminders as one note
+  const texte=`📋 Rappels du ${todayStr} :
+${reminders.join("
+")}`;
+  const{data,error}=await sb.from("pensebete").insert({data:{texte,par:"Auto"}}).select();
+  if(!error&&data){
+    pbNotes.unshift({id:data[0].id,texte,at:new Date().toISOString()});
+    renderPB();
+    toast("📋 Nouveaux rappels dans le pense-bête","#F59E0B");
+  }
+}
+
 async function pbAdd(){
   const inp=document.getElementById("pb-inp");
   if(!inp)return;
@@ -1224,6 +1313,113 @@ function setupPBDrag(){
     document.addEventListener("mousemove",onMove);document.addEventListener("touchmove",onMove,{passive:false});
     document.addEventListener("mouseup",onEnd);document.addEventListener("touchend",onEnd);
   },50);
+}
+
+
+
+// ── SCAN PLAQUE ───────────────────────────────────────────────
+let scanStream=null;
+
+function openScanPlaque(){
+  let el=document.getElementById("scan-wrap");
+  if(!el){el=document.createElement("div");el.id="scan-wrap";document.body.appendChild(el);}
+  el.innerHTML=`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:800;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+      <div style="background:#1E293B;border-radius:20px;width:min(500px,100%);overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.5)">
+        <div style="background:linear-gradient(135deg,#6B7AE8,#8B5CF6);padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:800;font-size:15px;color:#fff">📷 Scanner une plaque</div>
+          <button onclick="closeScan()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px">×</button>
+        </div>
+        <div style="padding:20px;text-align:center">
+          <video id="scan-video" autoplay playsinline style="width:100%;border-radius:12px;background:#000;max-height:300px;object-fit:cover"></video>
+          <canvas id="scan-canvas" style="display:none"></canvas>
+          <div id="scan-status" style="margin-top:12px;font-size:13px;color:#94A3B8">Pointez la caméra vers la plaque d'immatriculation</div>
+          <div style="display:flex;gap:10px;margin-top:14px;justify-content:center">
+            <button onclick="captureAndScan()" id="scan-btn" style="padding:12px 24px;background:#6B7AE8;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer">📸 Capturer</button>
+            <button onclick="closeScan()" style="padding:12px 20px;background:#334155;color:#94A3B8;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer">Annuler</button>
+          </div>
+          <div id="scan-result" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </div>`;
+  startCamera();
+}
+
+async function startCamera(){
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}
+    });
+    const video=document.getElementById("scan-video");
+    if(video){video.srcObject=scanStream;video.play();}
+    document.getElementById("scan-status").textContent="📷 Caméra prête — pointez vers la plaque et capturez";
+  }catch(e){
+    document.getElementById("scan-status").innerHTML=`<span style="color:#EF4444">❌ Caméra non disponible : ${e.message}</span>`;
+  }
+}
+
+async function captureAndScan(){
+  const video=document.getElementById("scan-video");
+  const canvas=document.getElementById("scan-canvas");
+  const btn=document.getElementById("scan-btn");
+  const status=document.getElementById("scan-status");
+  if(!video||!canvas)return;
+
+  btn.disabled=true;
+  btn.textContent="⏳ Analyse...";
+  status.textContent="🔍 Reconnaissance en cours...";
+
+  // Capture frame
+  canvas.width=video.videoWidth||640;
+  canvas.height=video.videoHeight||480;
+  const ctx=canvas.getContext("2d");
+  ctx.drawImage(video,0,0);
+
+  try{
+    const result=await Tesseract.recognize(canvas,"fra",{
+      logger:m=>{if(m.status==="recognizing text")status.textContent=`🔍 Analyse : ${Math.round(m.progress*100)}%`;}
+    });
+
+    const text=result.data.text.toUpperCase();
+    // French plate regex: AB-123-CD or AB 123 CD
+    const plateRegex=/[A-Z]{2}[-\s]?\d{3}[-\s]?[A-Z]{2}/g;
+    const matches=text.match(plateRegex)||[];
+
+    if(matches.length>0){
+      const plate=matches[0].replace(/\s/g,"-").toUpperCase();
+      status.innerHTML=`<span style="color:#22C55E;font-weight:700">✅ Plaque détectée : ${plate}</span>`;
+      // Search in VS
+      const found=VS.find(v=>v.immatriculation?.toUpperCase().replace(/\s/g,"-")===plate.replace(/\s/g,"-"));
+      const resultEl=document.getElementById("scan-result");
+      if(found){
+        resultEl.innerHTML=`<div style="background:#F0FDF4;border:1.5px solid #22C55E;border-radius:10px;padding:12px;margin-top:8px">
+          <div style="font-weight:700;color:#166534">✅ Dossier trouvé !</div>
+          <div style="font-size:13px;color:#374151;margin-top:4px">${found.client} — ${found.marque} ${found.modele||""}</div>
+          <button onclick="closeScan();oV('${found.id}')" style="margin-top:8px;padding:8px 16px;background:#22C55E;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">📂 Ouvrir le dossier</button>
+        </div>`;
+      } else {
+        // Search in text field
+        resultEl.innerHTML=`<div style="background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:12px;margin-top:8px">
+          <div style="font-weight:700;color:#92400E">⚠️ Plaque non trouvée dans les dossiers</div>
+          <button onclick="closeScan();setSV('${plate}');document.getElementById('search-main')&&(document.getElementById('search-main').value='${plate}')" style="margin-top:8px;padding:8px 16px;background:#F59E0B;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">🔍 Rechercher "${plate}"</button>
+        </div>`;
+      }
+    } else {
+      status.innerHTML=`<span style="color:#EF4444">❌ Aucune plaque détectée — réessayez</span>`;
+      btn.disabled=false;
+      btn.textContent="📸 Capturer";
+    }
+  }catch(e){
+    status.innerHTML=`<span style="color:#EF4444">❌ Erreur OCR : ${e.message}</span>`;
+    btn.disabled=false;
+    btn.textContent="📸 Capturer";
+  }
+}
+
+function closeScan(){
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+  const el=document.getElementById("scan-wrap");
+  if(el)el.innerHTML="";
 }
 
 
@@ -1465,6 +1661,14 @@ function renderChecklist(){
         </div>
       </div>
     </div>`;
+}
+// Register Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').then(()=>{
+      console.log('SW registered');
+    }).catch(e=>console.log('SW error',e));
+  });
 }
 </script>
 </body>
