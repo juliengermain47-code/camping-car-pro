@@ -290,24 +290,34 @@ function rCards(filt){if(!filt.length)return`<div style="text-align:center;paddi
 
 function rCard(v){
   const d=dD(v.livraisonDate),urg=d!==null&&d<=7&&v.statut!=="livre",accA=(v.accessoires||[]).filter(a=>!a.recu).length,rct=v.modifAt&&(Date.now()-new Date(v.modifAt).getTime())<300000;
-  const steps=["commande","preparation","lavage","pret","livre"],idx=steps.indexOf(v.statut);
-  const sHtml=`<div class="steps">${steps.map((s,i)=>{const done=i<idx,active=i===idx,c=ST[s]?.c||"#6B7AE8";return`<div style="display:flex;align-items:center;flex:1"><div style="width:11px;height:11px;border-radius:50%;flex-shrink:0;background:${done?"#22C55E":active?c:"#E5E7EB"};${active?`box-shadow:0 0 0 3px ${c}30`:""}"></div>${i<steps.length-1?`<div style="flex:1;height:2px;background:${done?"#22C55E":"#E5E7EB"}"></div>`:""}</div>`;}).join("")}</div>`;
+  // Card border turns green when ready
+  const ctOk=!v.ct?.prevoir||v.ct?.resultat==="favorable";
+  const mecaOk=!v.mecanique?.prevoir||!!v.mecanique?.dateRealise;
+  const lavageOk=!!v.lavage?.realise;
+  const finOk=v.financement==="Comptant"||!!v.financementSigne;
+  const toutPret=ctOk&&mecaOk&&lavageOk&&finOk&&v.statut!=="livre";
+  const sHtml="";
   const dots=[];
   if(v.ct?.prevoir)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:${v.ct.resultat==="favorable"?"#22C55E":"#F59E0B"};color:#fff;flex-shrink:0">${v.ct.resultat==="favorable"?"✓":"!"}</span><span style="color:${v.ct.resultat==="favorable"?"#166534":"#92400E"}">CT ${v.ct.resultat==="favorable"?"OK":fmt(v.ct.date)||"à planifier"}</span></div>`);
   if(v.mecanique?.prevoir)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:${v.mecanique.dateRealise?"#22C55E":"#F59E0B"};color:#fff;flex-shrink:0">${v.mecanique.dateRealise?"✓":"!"}</span><span style="color:${v.mecanique.dateRealise?"#166534":"#92400E"}">Méca. ${v.mecanique.dateRealise?"terminée le "+fmt(v.mecanique.dateRealise):fmt(v.mecanique.datePrevu)||"à planifier"}</span></div>`);
-  if(v.preparationDate)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Prépa. ${fmt(v.preparationDate)}</div>`);
+  if(v.preparationDate){
+    const clTotal=CL_ITEMS.length;
+    const clDone=CL_ITEMS.filter(it=>(v.checklist?.[it]?.etat==="ok"||v.checklist?.[it]?.etat==="nc")).length;
+    const clDefauts=CL_ITEMS.filter(it=>v.checklist?.[it]?.etat==="defaut").length;
+    const clComplete=clDone>0&&clDone===clTotal-clDefauts&&clDefauts===0;
+    dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:${clComplete?"#22C55E":"#E5E7EB"};color:${clComplete?"#fff":"#9CA3AF"}">${clComplete?"✓":"·"}</span><span style="color:${clComplete?"#166534":"#94A3B8"}">Prépa. ${fmt(v.preparationDate)}</span></div>`);
+  }
   if(v.lavageDate)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:${v.lavage?.realise?'#22C55E':'#E5E7EB'};color:${v.lavage?.realise?'#fff':'#9CA3AF'}">${v.lavage?.realise?'✓':'·'}</span><span style="color:${v.lavage?.realise?'#166534':'#94A3B8'}">Lavage ${v.lavage?.realise?fmt(v.lavage.realise):fmt(v.lavageDate)}</span></div>`);
   if(accA>0)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:#F59E0B;color:#fff;flex-shrink:0">!</span><span style="color:#92400E">${accA} accessoire${accA>1?"s":""} en attente</span></div>`);
   const defautsCheck=Object.entries(v.checklist||{}).filter(([,x])=>x.etat==="defaut");
   if(defautsCheck.length>0)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:#EF4444;color:#fff;flex-shrink:0">⚠</span><span style="color:#991B1B">${defautsCheck.length} défaut${defautsCheck.length>1?"s":""} checklist</span></div>`);
   if(v.reprise?.vehicule)dots.push(`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#94A3B8"><span style="width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;background:#E5E7EB;color:#9CA3AF">·</span>Reprise : ${es(v.reprise.vehicule)}</div>`);
-  return`<div class="card" onclick="oV('${v.id}')" style="${urg?"border:1.5px solid #EF444450;box-shadow:0 0 0 2px #EF444440,0 4px 16px rgba(0,0,0,0.07)":""}">
+  return`<div class="card" onclick="oV('${v.id}')" style="${urg?"border:1.5px solid #EF444450;box-shadow:0 0 0 2px #EF444440,0 4px 16px rgba(0,0,0,0.07)":toutPret?"border:1.5px solid #22C55E;box-shadow:0 0 0 2px #22C55E30,0 4px 16px rgba(0,0,0,0.07)":""}">
     ${urg?`<div style="position:absolute;top:12px;right:12px;background:#EF4444;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">${d<=0?"⚠ EN RETARD":"⚡ J-"+d}</div>`:""}
     ${rct&&!urg?`<div style="position:absolute;top:12px;right:12px;background:#22C55E;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">✓ Modifié</div>`:""}
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span style="font-weight:800;font-size:15px">${es(v.client)}</span>${ebdg(v.etat)}${v.archive?'<span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;border:1px solid #FDE68A">📦 Archivé</span>':''}</div>
     <div style="font-size:13px;color:#6B7AE8;font-weight:600;margin-bottom:1px">${es(v.marque)} ${es(v.modele)} <span style="color:#CBD5E1">·</span> <span style="color:#94A3B8;font-weight:500">${es(v.type)}</span></div>
     ${v.etat==="occasion"&&v.immatriculation?`<div style="font-size:12px;color:#94A3B8;font-family:monospace;margin-bottom:4px">${es(v.immatriculation)}</div>`:""}
-    ${sHtml}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin-top:10px">${dots.join("")}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;flex-wrap:wrap;gap:6px">
       <div style="font-size:12px"><span style="color:#94A3B8">Livraison </span><strong style="color:${urg?"#EF4444":"#0F172A"}">${fmt(v.livraisonDate)}</strong>${v.livraisonReelle?`<span style="color:#22C55E;margin-left:6px;font-size:11px">✓ ${fmt(v.livraisonReelle)}</span>`:""}</div>
