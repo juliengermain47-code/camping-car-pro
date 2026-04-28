@@ -218,6 +218,7 @@ async function startSession(name, role){
   render();
   renderAI();
   renderCal();
+  renderPB();
 }
 
 function doLogout(){if(CH)sb.removeChannel(CH);U=null;VS=[];localStorage.removeItem('loisirs47_session');document.getElementById("app").style.display="none";document.getElementById("ev").style.display="none";document.getElementById("ls").style.display="flex";SR="responsable";bRL();}
@@ -517,6 +518,7 @@ bRL();
 // ── ASSISTANT IA ─────────────────────────────────────────────
 let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false;
 let sortBy='none';
+let pbOpen=false,pbNotes=[];
 let calOpen=false,calView='month',calDate=new Date();
 
 function aiRoleColor(){if(!U)return["#6B7AE8","#8B5CF6"];const r=U.role;if(r==="nettoyage")return["#0EA5E9","#0284C7"];if(r==="mecanicien")return["#E85A3A","#C2410C"];if(r==="preparateur")return["#F59E0B","#D97706"];return["#6B7AE8","#8B5CF6"];}
@@ -738,7 +740,8 @@ async function aiSend(){
   try{
     const today2=new Date();const dw=today2.getDay();const nm2=new Date(today2);nm2.setDate(today2.getDate()+(dw===0?1:8-dw));const ns2=new Date(nm2);ns2.setDate(nm2.getDate()+6);
     const ctx=JSON.stringify(VS.map(v=>({id:v.id,client:v.client,etat:v.etat,marque:v.marque,modele:v.modele,immatriculation:v.immatriculation||null,statut:v.statut,livraisonPrevue:v.livraisonDate||null,lavageDate:v.lavageDate||null,lavageRealise:v.lavage?.realise||null,lavageCommentaire:v.lavage?.commentaire||null,ct:v.ct?.prevoir?{prevu:v.ct.date,realise:v.ct.realise,resultat:v.ct.resultat}:null,mecanique:v.mecanique?.prevoir?{travaux:v.mecanique.travaux,datePrevu:v.mecanique.datePrevu,dateRealise:v.mecanique.dateRealise,commentaire:v.mecanique.commentaireMeca||null}:null,accessoiresEnAttente:(v.accessoires||[]).filter(a=>!a.recu).map(a=>a.desc),notes:v.notes||null,defautsChecklist:Object.entries(v.checklist||{}).filter(([,x])=>x.etat==="defaut").map(([k,x])=>({point:k,commentaire:x.commentaire||""}))})));
-    const sys=`Tu es l'assistant de Loisirs 47. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents. IMPORTANT : si on te demande si une livraison est prête ou OK, vérifie toujours le champ defautsChecklist — s'il y a des défauts, signale-les clairement comme points bloquants.
+    const pbCtx=U?.name==="Julien"&&pbNotes.length?` Notes pense-bete de Julien : ${pbNotes.slice(0,10).map(n=>"- "+n.texte).join("; ")}.`:"";
+    const sys=`Tu es l'assistant de Loisirs 47. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents.${pbCtx} IMPORTANT : si on te demande si une livraison est prête ou OK, vérifie toujours le champ defautsChecklist — s'il y a des défauts, signale-les clairement comme points bloquants.
 
 IMPORTANT - MODIFICATIONS DE DOSSIERS :
 Si l'utilisateur demande de modifier un dossier (changer une date, un statut, ajouter une info, etc.), tu dois répondre en JSON avec ce format EXACT sur une seule ligne à la fin de ta réponse :
@@ -973,6 +976,91 @@ async function openHistorique(){
     </div>`;
   }catch(e){console.error(e);}
 }
+
+
+// ── PENSE-BÊTE JULIEN ─────────────────────────────────────────
+async function pbLoad(){
+  try{
+    const{data}=await sb.from("pensebete").select("*").order("created_at",{ascending:false}).limit(50);
+    pbNotes=(data||[]).map(r=>({id:r.id,texte:r.data?.texte||"",at:r.created_at}));
+  }catch(e){pbNotes=[];}
+}
+
+async function pbAdd(){
+  const inp=document.getElementById("pb-inp");
+  if(!inp)return;
+  const texte=inp.value.trim();
+  if(!texte)return;
+  inp.value="";
+  const{data,error}=await sb.from("pensebete").insert({data:{texte,par:"Julien"}}).select();
+  if(!error&&data){
+    pbNotes.unshift({id:data[0].id,texte,at:new Date().toISOString()});
+    renderPB();
+  }
+}
+
+async function pbDel(id){
+  await sb.from("pensebete").delete().eq("id",id);
+  pbNotes=pbNotes.filter(n=>n.id!==id);
+  renderPB();
+}
+
+function togglePB(){
+  if(!U||U.name!=="Julien")return;
+  pbOpen=!pbOpen;
+  if(pbOpen)pbLoad().then(()=>renderPB());
+  else renderPB();
+}
+
+function renderPB(){
+  let el=document.getElementById("pb-wrap");
+  if(!el){el=document.createElement("div");el.id="pb-wrap";document.body.appendChild(el);}
+  if(!U||U.name!=="Julien"){el.innerHTML="";return;}
+
+  const pbPos=JSON.parse(localStorage.getItem('pbPos')||'{"bottom":168,"right":24}');
+  const fmtAgo=iso=>{if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);if(d<60)return"à l'instant";if(d<3600)return`il y a ${Math.floor(d/60)}min`;if(d<86400)return`il y a ${Math.floor(d/3600)}h`;return`il y a ${Math.floor(d/86400)}j`;};
+
+  const notesHtml=pbNotes.length?pbNotes.map(n=>`
+    <div style="padding:10px 14px;border-bottom:1px solid #F1F5F9;display:flex;gap:8px;align-items:flex-start">
+      <div style="flex:1">
+        <div style="font-size:13px;color:#1E293B;line-height:1.4">${n.texte.replace(/</g,"&lt;")}</div>
+        <div style="font-size:10px;color:#CBD5E1;margin-top:3px">${fmtAgo(n.at)}</div>
+      </div>
+      <button onclick="pbDel('${n.id}')" style="background:none;border:none;color:#CBD5E1;cursor:pointer;font-size:16px;padding:0;flex-shrink:0">×</button>
+    </div>`).join("")
+    :`<div style="padding:32px 16px;text-align:center;color:#CBD5E1"><div style="font-size:32px">📝</div><div style="font-size:13px;margin-top:8px">Aucune note</div></div>`;
+
+  el.innerHTML=`
+    <button id="pb-btn" style="position:fixed;bottom:${pbPos.bottom}px;right:${pbPos.right}px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;font-size:24px;cursor:grab;box-shadow:0 4px 20px #F59E0B80;z-index:400;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none">${pbOpen?"✕":"📝"}</button>
+    ${pbOpen?`<div style="position:fixed;bottom:${pbPos.bottom+68}px;right:${pbPos.right}px;width:min(360px,calc(100vw - 48px));max-height:500px;background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0">
+      <div style="background:linear-gradient(135deg,#F59E0B,#D97706);padding:14px 18px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:18px">📝</div>
+        <div style="font-weight:800;font-size:14px;color:#fff;flex:1">Pense-bête</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.7)">${pbNotes.length} note${pbNotes.length>1?"s":""}</div>
+      </div>
+      <div style="overflow-y:auto;flex:1;max-height:320px">${notesHtml}</div>
+      <div style="padding:10px 12px;border-top:1px solid #F1F5F9;display:flex;gap:8px">
+        <input id="pb-inp" placeholder="Ajouter une note..." style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid #E2E8F0;font-size:13px;font-family:inherit;outline:none;margin:0" onkeydown="if(event.key==='Enter')pbAdd()" onfocus="this.style.borderColor='#F59E0B'" onblur="this.style.borderColor='#E2E8F0'"/>
+        <button onclick="pbAdd()" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#F59E0B,#D97706);border:none;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+      </div>
+    </div>`:""}`;
+  setupPBDrag();
+}
+
+function setupPBDrag(){
+  setTimeout(()=>{
+    const btn=document.getElementById("pb-btn");
+    if(!btn)return;
+    let dragging=false,startX,startY,startRight,startBottom,moved=false;
+    const onStart=e=>{dragging=true;moved=false;const pt=e.touches?e.touches[0]:e;startX=pt.clientX;startY=pt.clientY;const s=window.getComputedStyle(btn);startRight=parseInt(s.right);startBottom=parseInt(s.bottom);btn.style.cursor="grabbing";e.preventDefault();};
+    const onMove=e=>{if(!dragging)return;const pt=e.touches?e.touches[0]:e;const dx=pt.clientX-startX,dy=pt.clientY-startY;if(Math.abs(dx)>5||Math.abs(dy)>5)moved=true;const nr=Math.max(8,Math.min(window.innerWidth-64,startRight-dx));const nb=Math.max(8,Math.min(window.innerHeight-64,startBottom-dy));btn.style.right=nr+"px";btn.style.bottom=nb+"px";const panel=btn.nextElementSibling;if(panel){panel.style.right=nr+"px";panel.style.bottom=(nb+68)+"px";}e.preventDefault();};
+    const onEnd=()=>{if(!dragging)return;dragging=false;btn.style.cursor="grab";const s=window.getComputedStyle(btn);localStorage.setItem("pbPos",JSON.stringify({right:parseInt(s.right),bottom:parseInt(s.bottom)}));if(!moved)togglePB();};
+    btn.addEventListener("mousedown",onStart);btn.addEventListener("touchstart",onStart,{passive:false});
+    document.addEventListener("mousemove",onMove);document.addEventListener("touchmove",onMove,{passive:false});
+    document.addEventListener("mouseup",onEnd);document.addEventListener("touchend",onEnd);
+  },50);
+}
+
 
 // ── CHECKLIST PRÉPARATION ─────────────────────────────────────
 const CL_CATEGORIES = [
