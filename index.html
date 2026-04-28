@@ -213,7 +213,18 @@ async function startSession(name, role){
     }).subscribe();
   }
   CH=sb.channel("vch").on("postgres_changes",{event:"*",schema:"public",table:"ventes"},async()=>{
-    const d=await dbL();if(d){VS=d;render();renderAI();if(calOpen)renderCal();}
+    const d=await dbL();
+    if(d){
+      // Auto-update statuts
+      for(const v of d){
+        const newSt=autoStatut(v);
+        if(newSt!==v.statut&&v.statut!=="livre"){
+          await dbS({...v,statut:newSt,modifPar:"Auto",modifAt:new Date().toISOString()});
+          v.statut=newSt;
+        }
+      }
+      VS=d;render();renderAI();if(calOpen)renderCal();
+    }
   }).subscribe();
   render();
   renderAI();
@@ -444,11 +455,10 @@ function autoStatut(v){
   const mecaOk = !v.mecanique?.prevoir || !!v.mecanique?.dateRealise;
   const lavageOk = !v.lavageDate || !!v.lavage?.realise;
   const financementOk = v.financement==="Comptant" || !!v.financementSigne;
-  // Checklist complète = tous les points ok ou nc, zéro défaut
+  // Checklist : pas de défaut (les points non renseignés sont ignorés)
   const clItems=typeof CL_ITEMS!=="undefined"?CL_ITEMS:[];
-  const clDone=clItems.length===0||clItems.every(it=>v.checklist?.[it]?.etat==="ok"||v.checklist?.[it]?.etat==="nc"||!v.checklist?.[it]);
   const clNoDefaut=clItems.every(it=>v.checklist?.[it]?.etat!=="defaut");
-  const prepaOk = !v.preparationDate || (clDone && clNoDefaut);
+  const prepaOk = !v.preparationDate || clNoDefaut;
 
   const toutOk = ctOk && mecaOk && lavageOk && financementOk && prepaOk;
   if(toutOk) return "pret";
