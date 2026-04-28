@@ -527,7 +527,7 @@ bRL();
 })();
 
 // ── ASSISTANT IA ─────────────────────────────────────────────
-let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false;
+let aiOpen=false,aiMsgs=[],aiLoading=false,aiGreeted=false,aiListening=false,aiRecognition=null;
 let sortBy='none';
 let pbOpen=false,pbNotes=[];
 let calOpen=false,calView='month',calDate=new Date();
@@ -602,7 +602,8 @@ function renderAI(){
       <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:14px">${msgs}${loader}</div>
       ${suggHtml}
       <div style="padding:10px 12px;border-top:1px solid #F1F5F9;display:flex;gap:8px">
-        <input id="ai-inp" value="" placeholder="Posez votre question..." style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid #E2E8F0;font-size:13px;font-family:inherit;outline:none;margin:0" onkeydown="if(event.key==='Enter')aiSend()" onfocus="this.style.borderColor='${c1}'" onblur="this.style.borderColor='#E2E8F0'"/>
+        <input id="ai-inp" value="" placeholder="${aiListening?'Parlez...':'Posez votre question...'}" style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid ${aiListening?'#EF4444':'#E2E8F0'};font-size:13px;font-family:inherit;outline:none;margin:0" onkeydown="if(event.key==='Enter')aiSend()" onfocus="this.style.borderColor='${c1}'" onblur="this.style.borderColor='#E2E8F0'"/>
+        <button onclick="toggleAIVoice()" title="${aiListening?'Arrêter':'Parler'}" style="width:40px;height:40px;border-radius:12px;background:${aiListening?'#EF4444':'#F1F5F9'};border:${aiListening?'none':'1.5px solid #E2E8F0'};color:${aiListening?'#fff':'#64748B'};cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s">${aiListening?'⏹':'🎤'}</button>
         <button onclick="aiSend()" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,${c1},${c2});border:none;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
       </div>
     </div>`:""}`;
@@ -741,6 +742,30 @@ function cancelMod(mi){
   aiMsgs[mi].mod=null;
   aiMsgs[mi].t+="\n\n❌ Modification annulée.";
   renderAI();
+}
+
+function toggleAIVoice(){
+  if(aiListening){
+    if(aiRecognition)aiRecognition.stop();
+    aiListening=false;renderAI();return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Micro non supporté sur ce navigateur","#EF4444");return;}
+  aiRecognition=new SR();
+  aiRecognition.lang="fr-FR";
+  aiRecognition.continuous=false;
+  aiRecognition.interimResults=false;
+  aiRecognition.onstart=()=>{aiListening=true;renderAI();};
+  aiRecognition.onresult=e=>{
+    const t=e.results[0][0].transcript;
+    const inp=document.getElementById("ai-inp");
+    if(inp)inp.value=t;
+    aiListening=false;renderAI();
+    setTimeout(()=>aiSend(),300);
+  };
+  aiRecognition.onerror=e=>{aiListening=false;renderAI();if(e.error!=="aborted")toast("Erreur micro : "+e.error,"#EF4444");};
+  aiRecognition.onend=()=>{aiListening=false;renderAI();};
+  aiRecognition.start();
 }
 
 async function aiSend(){
