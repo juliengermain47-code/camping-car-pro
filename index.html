@@ -1228,9 +1228,7 @@ async function pbCheckReminders(){
   if(existing.length>0)return; // Already added today
 
   // Add all reminders as one note
-  const texte=`📋 Rappels du ${todayStr} :
-${reminders.join("
-")}`;
+  const texte="📋 Rappels du "+todayStr+" :\n"+reminders.join("\n");
   const{data,error}=await sb.from("pensebete").insert({data:{texte,par:"Auto"}}).select();
   if(!error&&data){
     pbNotes.unshift({id:data[0].id,texte,at:new Date().toISOString()});
