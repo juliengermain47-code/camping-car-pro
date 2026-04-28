@@ -394,7 +394,7 @@ function rPanel(isNew){
     </div>`;
 }
 
-function sF(f,sub,val){if(sub)PD[sub][f]=val;else PD[f]=val;if(f==="etat"||f==="prevoir")rPanel(!PD.id);}
+function sF(f,sub,val){if(sub)PD[sub][f]=val;else PD[f]=val;if(f==="etat"||f==="prevoir"||f==="financementSigne")rPanel(!PD.id);}
 function tF(f,sub){const cur=sub?PD[sub][f]:PD[f];sF(f,sub,!cur);}
 function tTrav(t){const tr=PD.mecanique.travaux,i=tr.indexOf(t);if(i>=0)tr.splice(i,1);else tr.push(t);rPanel(!PD.id);}
 function aTrav(){const v=document.getElementById("ntv").value.trim();if(!v)return;PD.mecanique.travaux.push(v);rPanel(!PD.id);}
