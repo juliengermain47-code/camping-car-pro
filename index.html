@@ -1220,14 +1220,18 @@ async function pbCheckReminders(){
     if(defauts>0&&d!==null&&d<=5)reminders.push(`⚠️ ${defauts} défaut${defauts>1?"s":""} checklist non résolus — ${client}`);
   });
 
+  const todayStr=new Date().toLocaleDateString("fr-FR");
+  
+  // Delete old reminders for today to avoid duplicates
+  const oldReminders=pbNotes.filter(n=>n.texte.startsWith("📋 Rappels du "+todayStr));
+  for(const old of oldReminders){
+    await sb.from("pensebete").delete().eq("id",old.id);
+    pbNotes=pbNotes.filter(n=>n.id!==old.id);
+  }
+
   if(reminders.length===0)return;
 
-  // Check if same reminders already exist today to avoid duplicates
-  const todayStr=new Date().toLocaleDateString("fr-FR");
-  const existing=pbNotes.filter(n=>n.texte.includes(todayStr));
-  if(existing.length>0)return; // Already added today
-
-  // Add all reminders as one note
+  // Add fresh reminder note
   const texte="📋 Rappels du "+todayStr+" :\n"+reminders.join("\n");
   const{data,error}=await sb.from("pensebete").insert({data:{texte,par:"Auto"}}).select();
   if(!error&&data){
