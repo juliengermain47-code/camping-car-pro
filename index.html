@@ -442,9 +442,9 @@ function rPanel(isNew){
     <div class="sec">💶 Financement</div>
     <div class="g2"><div><label class="lbl">Type</label>${sel("financement",FI,"")}</div>${inp("Organisme","organismeFinancement","")}<div style="grid-column:1/-1">${inp("Prix de vente (€)","prix","number")}</div></div>
     ${v.financement&&v.financement!=="Comptant"?`<div style="margin-top:8px">${tog("Financement signé ✍️","financementSigne","")}</div>`:""}
-        <div class="sec">🔄 Reprise véhicule</div>
-    <div class="g2">${inp("Véhicule repris","vehicule","","reprise")}${inp("Immatriculation","immat","","reprise")}${inp("Valeur (€)","valeur","","reprise")}${inp("État","etat","","reprise")}</div>
-`:''}    <div class="sec">📝 Notes</div>
+    ${!isTech?`<div class="sec">🔄 Reprise véhicule</div>
+    <div class="g2">${inp("Véhicule repris","vehicule","","reprise")}${inp("Immatriculation","immat","","reprise")}${inp("Valeur (€)","valeur","","reprise")}${inp("État","etat","","reprise")}</div>`:""}
+    <div class="sec">📝 Notes</div>
     <textarea rows="3" placeholder="Observations, instructions..." oninput="sF('notes','',this.value)">${es(v.notes)}</textarea>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" onclick="svV()" style="flex:1;padding:12px;background:#6B7AE8;color:#fff;font-size:14px">💾 Enregistrer</button>
@@ -1469,7 +1469,7 @@ function setClItem(key,field,val){
           commentDiv=document.createElement("div");
           commentDiv.className="cl-comment";
           commentDiv.style.marginTop="5px";
-          const safeKey=key.replace(/'/g,"\'");
+          const safeKey=key.replace(/'/g,"'");
           commentDiv.innerHTML=`<input type="text" value="${(clData[key].commentaire||"").replace(/"/g,"&quot;")}" oninput="if(!clData['${safeKey}'])clData['${safeKey}']={etat:'defaut',commentaire:''};clData['${safeKey}'].commentaire=this.value" placeholder="Décrire le défaut..." style="margin:0;font-size:12px;background:#FEF2F2;border-color:#FCA5A5;width:100%;padding:6px 10px;border-radius:6px;border:1.5px solid #FCA5A5;outline:none"/>`;
           row.appendChild(commentDiv);
         }
@@ -1505,7 +1505,7 @@ function renderChecklist(){
     const catRows=cat.items.map(it=>{
       const d=clData[it]||{etat:"",commentaire:""};
       const isOk=d.etat==="ok", isDef=d.etat==="defaut", isNc=d.etat==="nc";
-      const key=it.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+      const key=it.replace(/\\/g,"\\\\").replace(/'/g,"\'");
       const rowId="cl-row-"+it.replace(/[^a-zA-Z0-9]/g,"_");return`<div id="${rowId}" style="padding:9px 14px;border-bottom:1px solid #F8FAFC;background:${isDef?"#FFF8F8":isOk?"#F0FDF4":isNc?"#FAFAFA":"#fff"}">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="flex:1;font-size:12px;font-weight:600;color:#1E293B;min-width:160px">${it}</span>
@@ -1521,7 +1521,7 @@ function renderChecklist(){
     const catKey=cat.cat;
     return`<div style="background:#EEF2FF;padding:6px 14px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #C7D2FE;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
       <span>${cat.cat}</span>
-      <button onclick="validerCategorie('${catKey.replace(/'/g,"\'")}');event.stopPropagation()" style="padding:2px 8px;background:#22C55E;color:#fff;border:none;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer">✓ Tout OK</button>
+      <button onclick="validerCategorie('${catKey.replace(/'/g,"'")}');event.stopPropagation()" style="padding:2px 8px;background:#22C55E;color:#fff;border:none;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer">✓ Tout OK</button>
     </div>${catRows}`;
   }).join("");
 
