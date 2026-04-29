@@ -425,18 +425,8 @@ function rPanel(isNew){
     </div>
     <div class="g2"><div><label class="lbl">Marque</label>${sel("marque",MQ,"")}</div><div>${inp("Modèle","modele","")}</div><div><label class="lbl">Type</label>${sel("type",TY,"")}</div>${v.etat==="occasion"?`<div>${inp("Immatriculation","immatriculation","")}</div>`:""}</div>`}
     <div class="sec">📅 Statut & Dates</div>
-    ${isTech?`
-    <div class="g2">
-      <div><label class="lbl">Statut</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${ST[v.statut]?.l||v.statut}</div></div>
-      <div><label class="lbl">Date commande</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.commandeDate)}</div></div>
-      <div><label class="lbl">Date préparation</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.preparationDate)}</div></div>
-      <div><label class="lbl">Date lavage</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.lavageDate)}</div></div>
-      <div><label class="lbl">Livraison prévue</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.livraisonDate)}</div></div>
-      <div><label class="lbl">Livraison réelle</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${fmt(v.livraisonReelle)}</div></div>
-    </div>`
-    :`<div class="g2"><div><label class="lbl">Statut</label>${sel("statut",Object.entries(ST).filter(([k])=>k!=="preparation"&&k!=="lavage").map(([k,s])=>({v:k,l:s.l})),"")}</div>${inp("Date commande","commandeDate","date")}${inp("Date préparation","preparationDate","date")}${inp("Date lavage","lavageDate","date")}${inp("Livraison prévue","livraisonDate","date")}${inp("Livraison réelle","livraisonReelle","date")}</div>`}
-    `
-    ${!isTech?`<div class="sec">🔍 Contrôle Technique</div>
+    <div class="g2"><div><label class="lbl">Statut</label>${sel("statut",Object.entries(ST).filter(([k])=>k!=="preparation"&&k!=="lavage").map(([k,s])=>({v:k,l:s.l})),"")}</div>${inp("Date commande","commandeDate","date")}${inp("Date préparation","preparationDate","date")}${inp("Date lavage","lavageDate","date")}${inp("Livraison prévue","livraisonDate","date")}${inp("Livraison réelle","livraisonReelle","date")}</div>
+        <div class="sec">🔍 Contrôle Technique</div>
     ${tog("CT à prévoir","prevoir","ct")}
     ${v.ct?.prevoir?`<div class="g2" style="margin-top:8px">${inp("Date CT prévue","date","date","ct")}<div style="grid-column:1/-1"><label class="lbl">Résultat</label>${sel("resultat",[{v:"",l:"— En attente —"},{v:"favorable",l:"✅ Favorable"},{v:"defavorable",l:"❌ Défavorable"},{v:"prescriptions",l:"⚠️ Avec prescriptions"}],"ct")}</div></div>`:""}
     <div class="sec">⚙️ Mécanique</div>
@@ -448,16 +438,11 @@ function rPanel(isNew){
     <div class="sec">🛒 Accessoires</div>
     <div id="aal">${ac.map((a,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:6px"><span style="flex:1;font-size:13px">${es(a.desc)}</span><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#6B7AE8;cursor:pointer;white-space:nowrap"><input type="checkbox" ${a.commande?"checked":""} onchange="sAc(${i},'commande',this.checked)"/> Commandé</label><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#22C55E;cursor:pointer;white-space:nowrap"><input type="checkbox" ${a.recu?"checked":""} onchange="sAc(${i},'recu',this.checked)"/> Reçu</label><button onclick="rAc(${i})" style="background:none;border:none;color:#CBD5E1;cursor:pointer;font-size:18px">×</button></div>`).join("")}</div>
     <div style="display:flex;gap:6px;margin-top:4px"><input type="text" id="nac" placeholder="Ex: Store Fiamma, câble 220V..." style="margin:0" onkeydown="if(event.key==='Enter')aAc()"/><button class="btn" onclick="aAc()" style="padding:8px 16px;background:#6B7AE8;color:#fff;font-size:15px">+</button></div>
-`:""}\n    ${!isTech?`<div class="sec">💶 Financement</div>
+
+    <div class="sec">💶 Financement</div>
     <div class="g2"><div><label class="lbl">Type</label>${sel("financement",FI,"")}</div>${inp("Organisme","organismeFinancement","")}<div style="grid-column:1/-1">${inp("Prix de vente (€)","prix","number")}</div></div>
-    ${v.financement&&v.financement!=="Comptant"?`<div style="margin-top:8px">${tog("Financement signé ✍️","financementSigne","")}</div>`:""}`:
-    `<div class="sec">💶 Financement</div>
-    <div class="g2">
-      <div><label class="lbl">Type</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${es(v.financement||"—")}</div></div>
-      <div><label class="lbl">Organisme</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${es(v.organismeFinancement||"—")}</div></div>
-      <div style="grid-column:1/-1"><label class="lbl">Prix</label><div style="padding:8px 11px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#64748B;border:1.5px solid #E2E8F0">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</div></div>
-    </div>`}
-    ${!isTech?`<div class="sec">🔄 Reprise véhicule</div>
+    ${v.financement&&v.financement!=="Comptant"?`<div style="margin-top:8px">${tog("Financement signé ✍️","financementSigne","")}</div>`:""}
+        <div class="sec">🔄 Reprise véhicule</div>
     <div class="g2">${inp("Véhicule repris","vehicule","","reprise")}${inp("Immatriculation","immat","","reprise")}${inp("Valeur (€)","valeur","","reprise")}${inp("État","etat","","reprise")}</div>
 `:''}    <div class="sec">📝 Notes</div>
     <textarea rows="3" placeholder="Observations, instructions..." oninput="sF('notes','',this.value)">${es(v.notes)}</textarea>
