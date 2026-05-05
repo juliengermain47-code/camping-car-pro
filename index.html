@@ -927,79 +927,27 @@ Champs optionnels : immatriculation, livraisonDate, commandeDate, prix, financem
     console.log("Has CREATION_JSON:", fullText.includes("CREATION_JSON:{"));
     console.log("Has MODIFICATION_JSON:", fullText.includes("MODIFICATION_JSON:{"));
     // Check for modification JSON
-    // Extract MODIFICATION_JSON with balanced braces
-    let pendingMod=null;
-    let modRawIdx=fullText.indexOf("MODIFICATION_JSON:");
-    let modIdx=-1,jsonStart2=-1;
-    if(modRawIdx>=0){
-      for(let i=modRawIdx+18;i<fullText.length;i++){
-        if(fullText[i]==="{"){modIdx=modRawIdx;jsonStart2=i;break;}
-        if(fullText[i]!==" "&&fullText[i]!=="
-"&&fullText[i]!=="
-")break;
+    // Extract all JSON blocks
+    function extractJSON(text, tag){
+      const si=text.indexOf(tag+":");
+      if(si<0)return{text,data:null};
+      const bi=text.indexOf("{",si+tag.length+1);
+      if(bi<0)return{text,data:null};
+      let d=0,ei=-1;
+      for(let i=bi;i<text.length;i++){
+        if(text[i]==="{")d++;
+        else if(text[i]==="}"){d--;if(d===0){ei=i+1;break;}}
       }
+      if(ei<0)return{text,data:null};
+      try{
+        const data=JSON.parse(text.substring(bi,ei));
+        return{text:(text.substring(0,si)+text.substring(ei)).trim(),data};
+      }catch(e){return{text,data:null};}
     }
-    if(modIdx>=0&&jsonStart2>=0){
-      let depth=0,end2=-1;
-      const _modIdx=modIdx;
-      for(let i=jsonStart2;i<fullText.length;i++){
-        if(fullText[i]==="{")depth++;
-        else if(fullText[i]==="}"){depth--;if(depth===0){end2=i+1;break;}}
-      }
-      if(end2>0){
-        try{pendingMod=JSON.parse(fullText.substring(jsonStart2,end2));fullText=(fullText.substring(0,_modIdx)+fullText.substring(end2)).trim();}catch(e){console.log('MOD parse error:',e);}
-      }
-    }
-    // Extract CREATION_JSON with balanced braces
-    let pendingCreate=null;
-    // Find CREATION_JSON with flexible spacing
-    let createRawIdx=fullText.indexOf("CREATION_JSON:");
-    let createIdx=-1,jsonStart3=-1;
-    if(createRawIdx>=0){
-      // Find the { after the colon (skip spaces/newlines)
-      for(let i=createRawIdx+14;i<fullText.length;i++){
-        if(fullText[i]==="{"){createIdx=createRawIdx;jsonStart3=i;break;}
-        if(fullText[i]!==" "&&fullText[i]!=="
-"&&fullText[i]!=="
-")break;
-      }
-    }
-    if(createIdx>=0&&jsonStart3>=0){
-      let depth=0,end3=-1;
-      // Adjust to start counting from jsonStart3
-      const _createIdx=createIdx;
-      for(let i=jsonStart3;i<fullText.length;i++){
-        if(fullText[i]==="{")depth++;
-        else if(fullText[i]==="}"){depth--;if(depth===0){end3=i+1;break;}}
-      }
-      if(end3>0){
-        try{
-          pendingCreate=JSON.parse(fullText.substring(jsonStart3,end3));
-          fullText=(fullText.substring(0,_createIdx)+fullText.substring(end3)).trim();
-          console.log("pendingCreate:", JSON.stringify(pendingCreate));
-        }catch(e){console.log("CREATION_JSON parse error:",e.message);}
-      }
-    }
-    // Extract CHECKLIST_JSON - find balanced braces
-    let pendingCL2=null;
-    const clIdx=fullText.indexOf("CHECKLIST_JSON:{");
-    if(clIdx>=0){
-      let depth=0,start=clIdx+16,end=-1;
-      const jsonStart=clIdx+15;
-      for(let i=jsonStart;i<fullText.length;i++){
-        if(fullText[i]==="{")depth++;
-        else if(fullText[i]==="}"){depth--;if(depth===0){end=i+1;break;}}
-      }
-      if(end>0){
-        try{
-          pendingCL2=JSON.parse(fullText.substring(jsonStart,end));
-          fullText=fullText.substring(0,clIdx)+fullText.substring(end);
-          fullText=fullText.trim();
-        }catch(e){console.log("CL parse error",e);}
-      }
-    }
-    const clMatch=null;
-    let pendingCL=null;
+    let pendingMod=null,pendingCreate=null,pendingCL2=null;
+    {const r=extractJSON(fullText,"MODIFICATION_JSON");fullText=r.text;pendingMod=r.data;if(pendingMod)console.log("MOD extracted:",pendingMod.client);}
+    {const r=extractJSON(fullText,"CREATION_JSON");fullText=r.text;pendingCreate=r.data;if(pendingCreate)console.log("CREATE extracted:",pendingCreate.client);}
+    {const r=extractJSON(fullText,"CHECKLIST_JSON");fullText=r.text;pendingCL2=r.data;if(pendingCL2)console.log("CL extracted:",pendingCL2.client);}
     aiMsgs.push({r:"a",t:fullText,mod:pendingMod,create:pendingCreate,cl:pendingCL2});
   }catch(e){aiMsgs.push({r:"a",t:"❌ Erreur de connexion."});}
   aiLoading=false;renderAI();
@@ -1577,14 +1525,7 @@ function renderChecklist(){
       </div>
     </div>`;
 }
-// Register Service Worker
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw.js').then(()=>{
-      console.log('SW registered');
-    }).catch(e=>console.log('SW error',e));
-  });
-}
+
 </script>
 </body>
 </html>
