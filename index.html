@@ -898,8 +898,7 @@ async function aiSend(){
     const pbCtx=U?.name==="Julien"&&pbNotes.length?` Notes pense-bete de Julien : ${pbNotes.slice(0,10).map(n=>"- "+n.texte).join("; ")}.`:"";
     const sys=`Tu es l'assistant de Loisirs 47. Aujourd'hui : ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}. Semaine prochaine : du ${nm2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} au ${ns2.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}. Utilisateur : ${U?.name} (${U?.role}). Adapte au rôle : nettoyage=lavages/urgences ; mecanicien=travaux/dates ; preparateur=préparation/oublis/checklist ; vendeur=livraisons/clients/accessoires ; responsable=vue globale/chiffres. Données : ${ctx}. Règles : réponses courtes en listes, ne cite que les dossiers pertinents.${pbCtx} IMPORTANT : si on te demande si une livraison est prête ou OK, vérifie toujours le champ defautsChecklist — s'il y a des défauts, signale-les clairement comme points bloquants.
 
-IMPORTANT - MODIFICATIONS DE DOSSIERS :
-Si l'utilisateur demande de modifier un dossier (changer une date, un statut, ajouter une info, etc.), tu dois répondre en JSON avec ce format EXACT sur une seule ligne à la fin de ta réponse :
+IMPORTANT - MODIFICATIONS ET CRÉATIONS : Tu ne dois JAMAIS dire que tu as fait une modification ou une création sans inclure le JSON correspondant. OBLIGATOIRE : si l'utilisateur demande une modification, tu DOIS inclure à la fin de ta réponse exactement :
 MODIFICATION_JSON:{"id":"ID_DU_DOSSIER","client":"NOM_CLIENT","champs":{"nomDuChamp":"valeur"},"description":"Ce que tu vas modifier"}
 Les champs modifiables sont : statut, livraisonDate (YYYY-MM-DD) = date de livraison prévue, commandeDate (YYYY-MM-DD), preparationDate (YYYY-MM-DD), lavageDate (YYYY-MM-DD), livraisonReelle (YYYY-MM-DD) = date de livraison réelle, prix, financement, notes, ct.date (YYYY-MM-DD), ct.resultat (favorable/defavorable/prescriptions), ct.prevoir (true/false), mecanique.datePrevu (YYYY-MM-DD), mecanique.dateRealise (YYYY-MM-DD), mecanique.prevoir (true/false). ATTENTION : le champ date de livraison prévue s'appelle livraisonDate (pas livraisonPrevue).
 La checklist contient ces catégories et points exacts :
@@ -918,38 +917,67 @@ CHECKLIST_JSON:{"id":"ID_DU_DOSSIER","client":"NOM","points":{"Nom du point":{"e
 Les états possibles : ok, defaut, nc. Les noms de points doivent correspondre exactement aux points de la checklist.
 Si tu ne fais pas de modification, ne mets pas MODIFICATION_JSON dans ta réponse.
 
-CRÉATION DE DOSSIER : Si l'utilisateur demande de créer un nouveau dossier, utilise ce format :
+CRÉATION DE DOSSIER : Si l'utilisateur demande de créer un nouveau dossier, tu DOIS inclure à la fin de ta réponse exactement ce format (OBLIGATOIRE) :
 CREATION_JSON:{"client":"NOM","etat":"occasion","marque":"Marque","modele":"Modele","type":"Fourgon","immatriculation":"XX-000-XX","statut":"commande","livraisonDate":"YYYY-MM-DD","commandeDate":"YYYY-MM-DD","prix":"","financement":"Comptant","notes":"","description":"Résumé de ce que tu crées"}
 Champs optionnels : immatriculation, livraisonDate, commandeDate, prix, financement, notes, modele, type. etat = "neuf" ou "occasion".`;
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1000,system:sys,messages:aiMsgs.slice(0,-1).concat([{r:"u",t:msg}]).map(m=>({role:m.r==="u"?"user":"assistant",content:m.t||" "})).filter(m=>m.content.trim())})});
     const data=await r.json();
     let fullText=data.content?.map(c=>c.text||"").join("\n")||"Je n'ai pas pu répondre.";
-    console.log("AI response:", fullText);
+    console.log("AI raw response:", fullText.substring(0,500));
+    console.log("Has CREATION_JSON:", fullText.includes("CREATION_JSON:{"));
+    console.log("Has MODIFICATION_JSON:", fullText.includes("MODIFICATION_JSON:{"));
     // Check for modification JSON
     // Extract MODIFICATION_JSON with balanced braces
     let pendingMod=null;
-    const modIdx=fullText.indexOf("MODIFICATION_JSON:{");
-    if(modIdx>=0){
-      let depth=0,jsonStart2=modIdx+18,end2=-1;
+    let modRawIdx=fullText.indexOf("MODIFICATION_JSON:");
+    let modIdx=-1,jsonStart2=-1;
+    if(modRawIdx>=0){
+      for(let i=modRawIdx+18;i<fullText.length;i++){
+        if(fullText[i]==="{"){modIdx=modRawIdx;jsonStart2=i;break;}
+        if(fullText[i]!==" "&&fullText[i]!=="
+"&&fullText[i]!=="
+")break;
+      }
+    }
+    if(modIdx>=0&&jsonStart2>=0){
+      let depth=0,end2=-1;
+      const _modIdx=modIdx;
       for(let i=jsonStart2;i<fullText.length;i++){
         if(fullText[i]==="{")depth++;
         else if(fullText[i]==="}"){depth--;if(depth===0){end2=i+1;break;}}
       }
       if(end2>0){
-        try{pendingMod=JSON.parse(fullText.substring(jsonStart2,end2));fullText=(fullText.substring(0,modIdx)+fullText.substring(end2)).trim();}catch(e){}
+        try{pendingMod=JSON.parse(fullText.substring(jsonStart2,end2));fullText=(fullText.substring(0,_modIdx)+fullText.substring(end2)).trim();}catch(e){console.log('MOD parse error:',e);}
       }
     }
     // Extract CREATION_JSON with balanced braces
     let pendingCreate=null;
-    const createIdx=fullText.indexOf("CREATION_JSON:{");
-    if(createIdx>=0){
-      let depth=0,jsonStart3=createIdx+15,end3=-1;
+    // Find CREATION_JSON with flexible spacing
+    let createRawIdx=fullText.indexOf("CREATION_JSON:");
+    let createIdx=-1,jsonStart3=-1;
+    if(createRawIdx>=0){
+      // Find the { after the colon (skip spaces/newlines)
+      for(let i=createRawIdx+14;i<fullText.length;i++){
+        if(fullText[i]==="{"){createIdx=createRawIdx;jsonStart3=i;break;}
+        if(fullText[i]!==" "&&fullText[i]!=="
+"&&fullText[i]!=="
+")break;
+      }
+    }
+    if(createIdx>=0&&jsonStart3>=0){
+      let depth=0,end3=-1;
+      // Adjust to start counting from jsonStart3
+      const _createIdx=createIdx;
       for(let i=jsonStart3;i<fullText.length;i++){
         if(fullText[i]==="{")depth++;
         else if(fullText[i]==="}"){depth--;if(depth===0){end3=i+1;break;}}
       }
       if(end3>0){
-        try{pendingCreate=JSON.parse(fullText.substring(jsonStart3,end3));fullText=(fullText.substring(0,createIdx)+fullText.substring(end3)).trim();}catch(e){}
+        try{
+          pendingCreate=JSON.parse(fullText.substring(jsonStart3,end3));
+          fullText=(fullText.substring(0,_createIdx)+fullText.substring(end3)).trim();
+          console.log("pendingCreate:", JSON.stringify(pendingCreate));
+        }catch(e){console.log("CREATION_JSON parse error:",e.message);}
       }
     }
     // Extract CHECKLIST_JSON - find balanced braces
