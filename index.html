@@ -459,7 +459,7 @@ function rPanel(isNew){
     </div>`;
 }
 
-function sF(f,sub,val){if(sub)PD[sub][f]=val;else PD[f]=val;if(f==="etat"||f==="prevoir"||f==="financementSigne")rPanel(!PD.id);}
+function sF(f,sub,val){if(sub){if(!PD[sub]||typeof PD[sub]!=='object')PD[sub]={};PD[sub][f]=val;}else PD[f]=val;if(f==="etat"||f==="prevoir"||f==="financementSigne")rPanel(!PD.id);}
 function tF(f,sub){const cur=sub?PD[sub][f]:PD[f];sF(f,sub,!cur);}
 function tTrav(t){const tr=PD.mecanique.travaux,i=tr.indexOf(t);if(i>=0)tr.splice(i,1);else tr.push(t);rPanel(!PD.id);}
 function aTrav(){const v=document.getElementById("ntv").value.trim();if(!v)return;PD.mecanique.travaux.push(v);rPanel(!PD.id);}
@@ -493,6 +493,8 @@ async function svV(){
   PD.statut=autoStatut(PD);
   PD.modifPar=U.name;PD.modifAt=new Date().toISOString();
   await dbS(PD);
+  // Reload VS immediately so reopening shows latest values
+  const fresh=await dbL();if(fresh){VS=fresh;render();}
   if(PD.statut!==ancienStatut){
     toast(`🎉 ${PD.client} — Statut passé à "${ST[PD.statut]?.l||PD.statut}"!`,"#22C55E");
     await dbSN({type:"statut",icon:"🎉",couleur:"#22C55E",titre:`${PD.client} — Prêt à livrer !`,detail:`Toutes les conditions sont remplies`});
