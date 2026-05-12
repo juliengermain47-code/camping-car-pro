@@ -566,16 +566,26 @@ if(lnEl) lnEl.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 document.addEventListener("click",e=>{if(NO&&!document.getElementById("nw").contains(e.target)){NO=false;document.getElementById("np").style.display="none";}});
 bRL();
 // Reset button positions if off screen
-(()=>{
-  ['aiPos','calPos','pbPos'].forEach(key=>{
-    try{
-      const pos=JSON.parse(localStorage.getItem(key)||'{}');
-      if(pos.right>window.innerWidth-64||pos.bottom>window.innerHeight-64){
-        localStorage.removeItem(key);
-      }
-    }catch(e){localStorage.removeItem(key);}
-  });
-})();
+function resetPosIfOffscreen(key,defaultPos){
+  try{
+    const pos=JSON.parse(localStorage.getItem(key)||'{}');
+    if(!pos.right&&!pos.bottom)return defaultPos;
+    const maxR=window.innerWidth-64;
+    const maxB=window.innerHeight-64;
+    if(pos.right>maxR||pos.bottom>maxB||pos.right<0||pos.bottom<0){
+      localStorage.removeItem(key);
+      return defaultPos;
+    }
+    return pos;
+  }catch(e){localStorage.removeItem(key);return defaultPos;}
+}
+// Run on load
+['aiPos','calPos','pbPos'].forEach(key=>{resetPosIfOffscreen(key,{});});
+// Also reset on resize
+window.addEventListener('resize',()=>{
+  ['aiPos','calPos','pbPos'].forEach(key=>{resetPosIfOffscreen(key,{});});
+  renderAI();if(typeof renderCal==="function")renderCal();if(typeof renderPB==="function")renderPB();
+});
 
 // Dark mode
 let darkMode=localStorage.getItem('darkMode')==='1';
@@ -674,7 +684,7 @@ function renderAI(){
   const suggHtml=aiMsgs.length<=1?`<div style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:5px">${sugg.map(s=>`<button onclick="aiSugg('${es(s)}')" style="padding:5px 10px;background:${c1}15;color:${c1};border:1px solid ${c1}30;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${s}</button>`).join("")}</div>`:"";
 
   // Restore saved button position
-  const aiPos=JSON.parse(localStorage.getItem('aiPos')||'{"bottom":24,"right":24}');
+  const aiPos=resetPosIfOffscreen('aiPos',{bottom:24,right:24});
   el.innerHTML=`
     <button id="ai-btn" style="position:fixed;bottom:${aiPos.bottom}px;right:${aiPos.right}px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});color:#fff;border:none;font-size:24px;cursor:grab;box-shadow:0 4px 20px ${c1}80;z-index:400;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none">${aiOpen?"✕":"🤖"}</button>
     ${aiOpen?`<div id="ai-panel" style="position:fixed;bottom:${aiPos.bottom+68}px;right:${aiPos.right}px;width:min(400px,calc(100vw - 48px));height:min(560px,calc(100vh - 120px));background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0">
@@ -716,7 +726,7 @@ function renderAI(){
       btn.style.right=newRight+"px";
       btn.style.bottom=newBottom+"px";
       const panel=document.getElementById("ai-panel");
-      if(panel){panel.style.right=newRight+"px";panel.style.bottom=(newBottom+68)+"px";}
+      if(panel){panel.style.right=newRight+"px";panel.style.bottom=Math.min(window.innerHeight-140,newBottom+68)+"px";}
       e.preventDefault();
     };
     const onEnd=e=>{
@@ -963,7 +973,7 @@ function renderCal(){
   if(!U){el.innerHTML="";return;}
 
   // Floating button
-  const calPos=JSON.parse(localStorage.getItem('calPos')||'{"bottom":96,"right":24}');
+  const calPos=resetPosIfOffscreen('calPos',{bottom:96,right:24});
   
   const btnHtml=`<button id="cal-btn" style="position:fixed;bottom:${calPos.bottom}px;right:${calPos.right}px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0EA5E9,#0284C7);color:#fff;border:none;font-size:24px;cursor:grab;box-shadow:0 4px 20px #0EA5E980;z-index:400;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none">${calOpen?"✕":"📅"}</button>`;
 
@@ -1237,7 +1247,7 @@ function renderPB(){
   if(!el){el=document.createElement("div");el.id="pb-wrap";document.body.appendChild(el);}
   if(!U||U.name!=="Julien"){el.innerHTML="";return;}
 
-  const pbPos=JSON.parse(localStorage.getItem('pbPos')||'{"bottom":168,"right":24}');
+  const pbPos=resetPosIfOffscreen('pbPos',{bottom:168,right:24});
   const fmtAgo=iso=>{if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);if(d<60)return"à l'instant";if(d<3600)return`il y a ${Math.floor(d/60)}min`;if(d<86400)return`il y a ${Math.floor(d/3600)}h`;return`il y a ${Math.floor(d/86400)}j`;};
 
   const notesHtml=pbNotes.length?pbNotes.map(n=>`
