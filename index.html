@@ -242,12 +242,14 @@ async function startSession(name, role){
   CH=sb.channel("vch").on("postgres_changes",{event:"*",schema:"public",table:"ventes"},async()=>{
     const d=await dbL();
     if(d){
-      // Auto-update statuts
+      // Auto-update statuts only for "commande" → "pret" (never downgrade manual choices)
       for(const v of d){
-        const newSt=autoStatut(v);
-        if(newSt!==v.statut&&v.statut!=="livre"){
-          await dbS({...v,statut:newSt,modifPar:"Auto",modifAt:new Date().toISOString()});
-          v.statut=newSt;
+        if(v.statut==="commande"){
+          const newSt=autoStatut(v);
+          if(newSt==="pret"){
+            await dbS({...v,statut:"pret",modifPar:"Auto",modifAt:new Date().toISOString()});
+            v.statut="pret";
+          }
         }
       }
       VS=d;render();renderAI();if(calOpen)renderCal();
@@ -538,7 +540,7 @@ function rNet(){
   </div>`;}
 
 async function mLav(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cn-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const upLav={...v,lavage:{...v.lavage,realise:today,commentaire:cmt,par:U.name},statut:v.statut};
-  upLav.statut=autoStatut(upLav);
+  if(autoStatut(upLav)==="pret"&&upLav.statut==="commande")upLav.statut="pret";
   const up={...upLav,modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"lavage",icon:"🧼",couleur:"#0EA5E9",titre:`Lavage terminé — ${v.client}`,detail:`${v.marque} ${v.modele} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Lavage enregistré","#22C55E");const d=await dbL();if(d)VS=d;rNet();}
 
 function rMec(){
@@ -562,7 +564,7 @@ function rMec(){
   </div>`;}
 
 async function mFait(id){const v=VS.find(x=>x.id===id);const cmt=document.getElementById(`cm-${id}`)?.value||"";const today=new Date().toISOString().split("T")[0];const upMec={...v,mecanique:{...v.mecanique,dateRealise:today,commentaireMeca:cmt,parMeca:U.name}};
-  upMec.statut=autoStatut(upMec);
+  if(autoStatut(upMec)==="pret"&&upMec.statut==="commande")upMec.statut="pret";
   const up={...upMec,modifPar:U.name,modifAt:new Date().toISOString()};await dbS(up);await dbSN({type:"mecanique",icon:"⚙️",couleur:"#F59E0B",titre:`Mécanique terminée — ${v.client}`,detail:`${v.marque} ${v.modele} · ${(v.mecanique.travaux||[]).join(", ")||"travaux"} · par ${U.name}${cmt?" · "+cmt:""}`});toast("✅ Intervention enregistrée","#22C55E");const d=await dbL();if(d)VS=d;rMec();}
 
 const lnEl = document.getElementById("ln");
@@ -1394,9 +1396,11 @@ async function saveChecklist(){
   const v=VS.find(x=>x.id===clVehicleId);
   if(!v)return;
   const up={...v,checklist:clData,modifPar:U.name,modifAt:new Date().toISOString()};
-  up.statut=autoStatut(up);
-  if(up.statut!==v.statut){
-    toast(`🔄 Statut mis à jour : ${ST[up.statut]?.l||up.statut}`,"#6B7AE8");
+  // Only auto-upgrade to pret, never downgrade
+  const newSt=autoStatut(up);
+  if(newSt==="pret"&&up.statut==="commande"){
+    up.statut="pret";
+    toast(`🎉 Statut passé à "Prêt" automatiquement`,"#22C55E");
   }
   await dbS(up);
   const fresh=await dbL();if(fresh){VS=fresh;render();}
