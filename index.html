@@ -969,6 +969,108 @@ CREATION_JSON:{"client":"NOM","etat":"neuf","marque":"Marque","modele":"Modele",
 }
 
 
+
+// ── EXPORT PDF CALENDRIER ─────────────────────────────────────
+function exportCalPDF(){
+  // Determine week range based on current calView and calDate
+  let dateDebut, dateFin, titre;
+  const monthNames=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+  if(calView==="week"){
+    const dow=calDate.getDay();
+    const diff=calDate.getDate()-dow+(dow===0?-6:1);
+    dateDebut=new Date(calDate);dateDebut.setDate(diff);dateDebut.setHours(0,0,0,0);
+    dateFin=new Date(dateDebut);dateFin.setDate(dateDebut.getDate()+6);dateFin.setHours(23,59,59,999);
+    titre=`Semaine du ${dateDebut.toLocaleDateString("fr-FR",{day:"numeric",month:"long"})} au ${dateFin.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}`;
+  } else {
+    // Month view - show full month
+    dateDebut=new Date(calDate.getFullYear(),calDate.getMonth(),1);
+    dateFin=new Date(calDate.getFullYear(),calDate.getMonth()+1,0,23,59,59,999);
+    titre=`${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}`;
+  }
+
+  const d1=dateDebut.toISOString().split("T")[0];
+  const d2=dateFin.toISOString().split("T")[0];
+
+  // Collect dossiers with events in this period
+  const items=[];
+  VS.forEach(v=>{
+    const events=[];
+    if(v.livraisonDate>=d1&&v.livraisonDate<=d2)
+      events.push({date:v.livraisonDate,type:"livraison",label:"Livraison prévue"});
+    if(v.ct?.prevoir&&v.ct?.date>=d1&&v.ct?.date<=d2)
+      events.push({date:v.ct.date,type:"ct",label:"Contrôle Technique"});
+    if(events.length>0)items.push({v,events});
+  });
+
+  // Sort by earliest event date
+  items.sort((a,b)=>a.events[0].date.localeCompare(b.events[0].date));
+
+  const fmt=d=>{if(!d)return"—";const[y,m,j]=d.split("-");return`${j}/${m}/${y}`;};
+  const fmtDay=d=>{if(!d)return"";const dt=new Date(d+"T00:00:00");return dt.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});};
+
+  // Group by date
+  const byDate={};
+  items.forEach(({v,events})=>{
+    events.forEach(ev=>{
+      if(!byDate[ev.date])byDate[ev.date]=[];
+      byDate[ev.date].push({v,type:ev.type,label:ev.label});
+    });
+  });
+
+  const rows=Object.keys(byDate).sort().map(date=>{
+    const evs=byDate[date];
+    return`<div style="margin-bottom:20px">
+      <div style="background:#EEF2FF;padding:8px 14px;border-radius:8px;font-weight:800;font-size:13px;color:#4338CA;border-left:4px solid #6B7AE8;margin-bottom:8px">${fmtDay(date)}</div>
+      ${evs.map(({v,type,label})=>`
+        <div style="display:grid;grid-template-columns:180px 1fr 120px 100px;gap:10px;padding:10px 14px;background:#fff;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:6px;align-items:center">
+          <div>
+            <div style="font-weight:800;font-size:13px">${v.client||"—"}</div>
+            <div style="font-size:11px;color:#6B7AE8;margin-top:2px">${v.marque} ${v.modele||""}</div>
+            ${v.etat==="occasion"&&v.immatriculation?`<div style="font-size:10px;color:#94A3B8;font-family:monospace">${v.immatriculation}</div>`:""}
+          </div>
+          <div>
+            <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${type==="livraison"?"#DCFCE7":"#FEF3C7"};color:${type==="livraison"?"#166534":"#92400E"}">${label}</span>
+            ${v.statut?`<span style="display:inline-block;margin-left:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#EEF2FF;color:#4338CA">${v.statut}</span>`:""}
+          </div>
+          <div style="font-size:12px;color:#64748B">
+            ${v.financement&&v.financement!=="Comptant"?`<div>${v.financement} ${v.financementSigne?"✍️":"⏳"}</div>`:""}
+            ${v.etat==="neuf"&&!v.cocDemande?`<div style="color:#EF4444;font-weight:700">COC à demander</div>`:""}
+            ${v.etat==="neuf"&&v.cocDemande?`<div style="color:#3B82F6">COC ✓</div>`:""}
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#0F172A;text-align:right">${v.prix?Number(v.prix).toLocaleString("fr-FR")+" €":"—"}</div>
+        </div>`).join("")}
+    </div>`;
+  }).join("");
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Loisirs 47 — ${titre}</title>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;color:#1E293B;padding:30px;max-width:900px;margin:0 auto}
+    h1{font-size:20px;font-weight:800;margin-bottom:4px}
+    .sub{font-size:13px;color:#94A3B8;margin-bottom:24px}
+    .empty{text-align:center;padding:60px;color:#94A3B8;font-size:16px}
+    @media print{button{display:none!important}@page{margin:15mm}}
+  </style>
+  </head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #EEF2FF">
+    <div>
+      <h1>🚐 Loisirs 47</h1>
+      <div class="sub">${titre}</div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:#94A3B8">
+      <div>Généré le ${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+      <div style="margin-top:4px">${items.length} dossier${items.length>1?"s":""} concerné${items.length>1?"s":""}</div>
+    </div>
+  </div>
+  ${items.length===0?`<div class="empty">Aucun dossier sur cette période</div>`:rows}
+  <button onclick="window.print()" style="margin-top:24px;padding:10px 24px;background:#6B7AE8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">🖨️ Imprimer / Exporter PDF</button>
+  </body></html>`;
+
+  const w=window.open("","_blank");
+  w.document.write(html);
+  w.document.close();
+}
 // ── CALENDRIER ───────────────────────────────────────────────
 function toggleCal(){
   calOpen=!calOpen;
@@ -1058,6 +1160,7 @@ function renderCal(){
         <button onclick="calView='week';renderCal()" style="padding:4px 10px;border-radius:8px;border:none;background:${calView==="week"?"#6B7AE8":"rgba(255,255,255,0.1)"};color:#fff;font-size:11px;font-weight:700;cursor:pointer">Semaine</button>
         <button onclick="(${prevMonth.toString()})()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px">◀</button>
         <button onclick="calDate=new Date();renderCal()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;padding:0 8px;height:28px;cursor:pointer;font-size:11px;font-weight:700">Auj.</button>
+        <button onclick="exportCalPDF()" style="background:#6B7AE8;border:none;color:#fff;border-radius:6px;padding:0 10px;height:28px;cursor:pointer;font-size:11px;font-weight:700">📄 PDF</button>
         <button onclick="(${nextMonth.toString()})()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px">▶</button>
       </div>
     </div>
