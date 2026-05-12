@@ -471,21 +471,22 @@ function sAc(i,f,v){PD.accessoires[i][f]=v;}
 function aAc(){const v=document.getElementById("nac").value.trim();if(!v)return;PD.accessoires.push({desc:v,commande:false,recu:false});rPanel(!PD.id);}
 function rAc(i){PD.accessoires.splice(i,1);rPanel(!PD.id);}
 function cnfDel(){const d=document.getElementById("dconf");d.style.display=d.style.display==="none"?"flex":"none";}
-function autoStatut(v){
+function autoStatut(v, forceStatut=null){
   if(v.statut==="livre")return v.statut;
+  // Si l'utilisateur a choisi manuellement un statut, le respecter
+  if(forceStatut)return forceStatut;
   
   const ctOk = !v.ct?.prevoir || v.ct?.resultat==="favorable";
   const mecaOk = !v.mecanique?.prevoir || !!v.mecanique?.dateRealise;
   const lavageOk = !v.lavageDate || !!v.lavage?.realise;
   const financementOk = v.financement==="Comptant" || !!v.financementSigne;
-  // Checklist : pas de défaut (les points non renseignés sont ignorés)
   const clItems=typeof CL_ITEMS!=="undefined"?CL_ITEMS:[];
   const clNoDefaut=clItems.every(it=>v.checklist?.[it]?.etat!=="defaut");
   const prepaOk = !v.preparationDate || clNoDefaut;
 
   const toutOk = ctOk && mecaOk && lavageOk && financementOk && prepaOk;
   if(toutOk) return "pret";
-  // Si le dossier était "pret" mais une condition n'est plus remplie → repasser en commande
+  // Repasser en commande seulement si le statut était "pret" automatique
   if(v.statut==="pret") return "commande";
   return v.statut;
 }
@@ -493,7 +494,10 @@ function autoStatut(v){
 async function svV(){
   PD.id=PD.id||gI();
   const ancienStatut=PD.statut;
-  PD.statut=autoStatut(PD);
+  const statutChoisi=PD.statut;
+  // Si l'utilisateur a choisi "commande" ou "livre" manuellement, le respecter
+  // Sinon laisser autoStatut décider
+  PD.statut=["livre","commande"].includes(statutChoisi)?statutChoisi:autoStatut(PD);
   PD.modifPar=U.name;PD.modifAt=new Date().toISOString();
   await dbS(PD);
   // Reload VS immediately so reopening shows latest values
